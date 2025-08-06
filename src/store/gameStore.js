@@ -14,6 +14,10 @@ const useGameStore = create(
       isGameOver: false,
       gameSpeed: 1000,
       
+      // Combo system
+      currentCombo: 0,
+      maxCombo: 0,
+      
       // Settings
       settings: {
         soundEnabled: true,
@@ -100,7 +104,21 @@ const useGameStore = create(
         isPaused: false,
         isGameOver: false,
         gameSpeed: 1000,
+        currentCombo: 0,
+        maxCombo: 0,
       }),
+      
+      // Combo actions
+      incrementCombo: () => set((state) => ({
+        currentCombo: state.currentCombo + 1,
+        maxCombo: Math.max(state.maxCombo, state.currentCombo + 1),
+        statistics: {
+          ...state.statistics,
+          bestCombo: Math.max(state.statistics.bestCombo, state.currentCombo + 1),
+        },
+      })),
+      
+      resetCombo: () => set({ currentCombo: 0 }),
       
       updateSettings: (newSettings) => set((state) => {
         const updatedSettings = { ...state.settings, ...newSettings };

@@ -186,6 +186,17 @@ export const calculateScore = (linesCleared, level) => {
   return baseScores[linesCleared] * level;
 };
 
+// Calculate combo bonus score
+export const calculateComboBonus = (comboCount, level) => {
+  if (comboCount <= 1) return 0;
+  
+  // Combo bonus increases exponentially
+  const baseBonus = 50;
+  const multiplier = Math.min(comboCount - 1, 10); // Cap at 10x multiplier
+  
+  return baseBonus * multiplier * level;
+};
+
 // Get ghost piece position (preview where piece will land)
 export const getGhostPieceY = (board, piece) => {
   if (!piece || !piece.shape) return null;
@@ -252,14 +263,45 @@ export const tryRotate = (board, piece, direction = 1) => {
     return rotatedPiece;
   }
   
-  // Try wall kicks
-  const kickData = piece.name === 'I' ? WALL_KICK_DATA.I : WALL_KICK_DATA.normal;
-  const currentRotation = 0; // Simplified, would need to track actual rotation state
-  const newRotation = (currentRotation + direction + 4) % 4;
-  const kickKey = `${currentRotation}->${newRotation}`;
+  // Try simple wall kicks for all pieces
+  // These offsets help pieces rotate near walls
+  const simpleKicks = [
+    [0, 0],   // Try original position
+    [-1, 0],  // Try moving left
+    [1, 0],   // Try moving right
+    [0, -1],  // Try moving up
+    [-2, 0],  // Try moving 2 left (for I piece)
+    [2, 0],   // Try moving 2 right (for I piece)
+    [-1, -1], // Try moving left and up
+    [1, -1],  // Try moving right and up
+    [0, 1],   // Try moving down
+    [-1, 1],  // Try moving left and down
+    [1, 1],   // Try moving right and down
+  ];
   
-  if (kickData[kickKey]) {
-    for (const [kickX, kickY] of kickData[kickKey]) {
+  // For I piece, use special kicks
+  if (piece.name === 'I') {
+    const iKicks = [
+      [0, 0],
+      [-2, 0], [1, 0],
+      [-2, 1], [1, -2],
+      [0, -2], [0, 1],
+      [-1, -2], [2, 1],
+      [2, -1], [-1, 2]
+    ];
+    
+    for (const [kickX, kickY] of iKicks) {
+      if (isValidPosition(board, rotatedPiece, piece.x + kickX, piece.y + kickY)) {
+        return {
+          ...rotatedPiece,
+          x: piece.x + kickX,
+          y: piece.y + kickY
+        };
+      }
+    }
+  } else {
+    // For all other pieces, use simple kicks
+    for (const [kickX, kickY] of simpleKicks) {
       if (isValidPosition(board, rotatedPiece, piece.x + kickX, piece.y + kickY)) {
         return {
           ...rotatedPiece,

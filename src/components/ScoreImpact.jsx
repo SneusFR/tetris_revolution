@@ -7,7 +7,9 @@ const ScoreImpact = ({
   effect = 'none', 
   position = { x: 0, y: 0 },
   onAnimationComplete,
-  scoreChange
+  scoreChange,
+  comboCount = 0,
+  comboBonus = 0
 }) => {
   const [showImpact, setShowImpact] = useState(false);
   const [impactParticles, setImpactParticles] = useState([]);
@@ -193,10 +195,33 @@ const ScoreImpact = ({
             >
               {getScoreText()}
             </motion.div>
+            
+            {/* Combo text */}
+            {comboCount > 1 && (
+              <motion.div
+                style={{
+                  fontSize: `${intensity * 12 + 14}px`,
+                  marginTop: '8px',
+                  color: '#FF6B35',
+                  textShadow: '0 0 15px #FF6B35, 0 0 30px #FF6B35',
+                  fontWeight: 'bold'
+                }}
+                initial={{ scale: 0, opacity: 0, y: 10 }}
+                animate={{ 
+                  scale: [0, 1.4, 1.2, 1], 
+                  opacity: [0, 1, 1, 0.9],
+                  y: [10, -5, 0, 0]
+                }}
+                transition={{ duration: 1.0, delay: 0.3, ease: "backOut" }}
+              >
+                COMBO x{comboCount}!
+              </motion.div>
+            )}
+            
             <motion.div 
               style={{ 
                 fontSize: `${intensity * 8 + 12}px`, 
-                marginTop: '5px',
+                marginTop: comboCount > 1 ? '8px' : '5px',
                 color: '#ffffff',
                 textShadow: `0 0 ${intensity * 5}px #ffffff`
               }}
@@ -205,6 +230,22 @@ const ScoreImpact = ({
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
             >
               +{scoreChange.toLocaleString()}
+              {comboBonus > 0 && (
+                <motion.span
+                  style={{
+                    display: 'block',
+                    fontSize: `${intensity * 6 + 10}px`,
+                    color: '#FFD700',
+                    textShadow: '0 0 10px #FFD700',
+                    marginTop: '2px'
+                  }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: [0, 1.2, 1], opacity: [0, 1, 0.9] }}
+                  transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+                >
+                  +{comboBonus} COMBO BONUS!
+                </motion.span>
+              )}
             </motion.div>
           </motion.div>
         </motion.div>

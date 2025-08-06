@@ -13,6 +13,7 @@ import {
   mergePiece,
   clearLines,
   calculateScore,
+  calculateComboBonus,
   getGhostPieceY,
   isGameOver,
   tryRotate,
@@ -54,12 +55,16 @@ const TetrisGame = () => {
     themes,
     currentTheme,
     currentEffect,
+    currentCombo,
+    maxCombo,
     updateScore,
     updateLevel,
     updateLines,
     setPaused,
     setGameOver,
-    resetGame
+    resetGame,
+    incrementCombo,
+    resetCombo
   } = useGameStore();
 
   const theme = themes.find(t => t.id === currentTheme);
@@ -199,6 +204,9 @@ const TetrisGame = () => {
     const linesToClear = getLinesToClear(newBoard);
     
     if (linesToClear.length > 0) {
+      // Clear current piece immediately when lines are being cleared
+      setCurrentPiece(null);
+      
       // Start line clearing animation
       setIsAnimatingLines(true);
       
@@ -217,10 +225,15 @@ const TetrisGame = () => {
           setDisappearingLines([]);
           setIsAnimatingLines(false);
           
+          // Handle combo system
+          incrementCombo();
+          const comboBonus = calculateComboBonus(currentCombo + 1, level);
+          
           // Update game state
           const points = calculateScore(linesCleared, level);
+          const totalPoints = points + comboBonus;
           const previousScore = score;
-          updateScore(points);
+          updateScore(totalPoints);
           updateLines(linesCleared);
           updateLevel();
           
@@ -239,9 +252,11 @@ const TetrisGame = () => {
           
           // Trigger score impact effect with unique key
           setScoreImpactData({
-            score: previousScore + points,
+            score: previousScore + totalPoints,
             linesCleared: linesCleared,
-            scoreChange: points
+            scoreChange: totalPoints,
+            comboCount: currentCombo + 1,
+            comboBonus: comboBonus
           });
           setScoreImpactKey(prev => prev + 1);
           
@@ -268,7 +283,8 @@ const TetrisGame = () => {
         }, 250); // Duration of disappear animation
       }, 150); // Duration of highlight animation
     } else {
-      // No lines to clear, proceed normally
+      // No lines to clear, reset combo
+      resetCombo();
       setBoard(newBoard);
       
       const newPiece = getNewPiece();
@@ -346,6 +362,9 @@ const TetrisGame = () => {
     const linesToClear = getLinesToClear(newBoard);
     
     if (linesToClear.length > 0) {
+      // Clear current piece immediately when lines are being cleared
+      setCurrentPiece(null);
+      
       // Start line clearing animation
       setIsAnimatingLines(true);
       
@@ -365,10 +384,15 @@ const TetrisGame = () => {
           setIsAnimatingLines(false);
           setIsHardDropping(false);
           
+          // Handle combo system
+          incrementCombo();
+          const comboBonus = calculateComboBonus(currentCombo + 1, level);
+          
           // Update game state
           const points = calculateScore(linesCleared, level);
+          const totalPoints = points + comboBonus;
           const previousScore = score;
-          updateScore(points);
+          updateScore(totalPoints);
           updateLines(linesCleared);
           updateLevel();
           
@@ -387,9 +411,11 @@ const TetrisGame = () => {
           
           // Trigger score impact effect with unique key
           setScoreImpactData({
-            score: previousScore + points,
+            score: previousScore + totalPoints,
             linesCleared: linesCleared,
-            scoreChange: points
+            scoreChange: totalPoints,
+            comboCount: currentCombo + 1,
+            comboBonus: comboBonus
           });
           setScoreImpactKey(prev => prev + 1);
           
@@ -416,7 +442,8 @@ const TetrisGame = () => {
         }, 250); // Duration of disappear animation
       }, 150); // Duration of highlight animation
     } else {
-      // No lines to clear, proceed normally
+      // No lines to clear, reset combo
+      resetCombo();
       setBoard(newBoard);
       setIsHardDropping(false);
       
@@ -796,6 +823,8 @@ const TetrisGame = () => {
             score={scoreImpactData.score}
             linesCleared={scoreImpactData.linesCleared}
             scoreChange={scoreImpactData.scoreChange}
+            comboCount={scoreImpactData.comboCount}
+            comboBonus={scoreImpactData.comboBonus}
             effect={currentEffect}
             position={{ 
               x: (BOARD_WIDTH * 30) / 2, 
@@ -867,6 +896,18 @@ const TetrisGame = () => {
               <p className="text-sm text-gray-400">LINES</p>
               <p className="text-2xl font-bold">{lines}</p>
             </div>
+            <div>
+              <p className="text-sm text-gray-400">COMBO</p>
+              <p className={`text-2xl font-bold ${currentCombo > 0 ? 'text-orange-400' : 'text-white'}`}>
+                {currentCombo > 0 ? `x${currentCombo}` : '-'}
+              </p>
+            </div>
+            {maxCombo > 0 && (
+              <div>
+                <p className="text-sm text-gray-400">MAX COMBO</p>
+                <p className="text-lg font-bold text-yellow-400">x{maxCombo}</p>
+              </div>
+            )}
           </div>
         </div>
 
