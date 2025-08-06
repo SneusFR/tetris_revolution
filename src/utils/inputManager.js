@@ -20,7 +20,16 @@ class InputManager {
     this.settings = {
       das: 100,  // Delayed Auto Shift - delay before auto-repeat starts
       arr: 0,    // Auto Repeat Rate - delay between repeats (0 = instant)
-      sdf: 1     // Soft Drop Factor - multiplier for down key
+      sdf: 1,    // Soft Drop Factor - multiplier for down key
+      keyBindings: {
+        moveLeft: 'ArrowLeft',
+        moveRight: 'ArrowRight',
+        softDrop: 'ArrowDown',
+        hardDrop: ' ',
+        rotate: 'ArrowUp',
+        hold: 'c',
+        pause: 'p'
+      }
     };
 
     // Timing state
@@ -89,105 +98,94 @@ class InputManager {
   handleKeyDown(e) {
     const now = performance.now();
     let handled = false;
+    const key = e.key.toLowerCase();
+    const bindings = this.settings.keyBindings;
 
-    switch (e.key) {
-      case 'ArrowLeft':
-      case 'a':
-      case 'A':
-        if (!this.keys.left) {
-          this.keys.left = true;
-          this.timers.left.dasStart = now;
-          this.timers.left.lastRepeat = now;
-          this.timers.left.active = true;
-          // Immediate first move
-          if (this.callbacks.moveLeft) {
-            this.callbacks.moveLeft();
-          }
+    // Check for move left
+    if (key === bindings.moveLeft.toLowerCase()) {
+      if (!this.keys.left) {
+        this.keys.left = true;
+        this.timers.left.dasStart = now;
+        this.timers.left.lastRepeat = now;
+        this.timers.left.active = true;
+        // Immediate first move
+        if (this.callbacks.moveLeft) {
+          this.callbacks.moveLeft();
         }
-        handled = true;
-        break;
-
-      case 'ArrowRight':
-      case 'd':
-      case 'D':
-        if (!this.keys.right) {
-          this.keys.right = true;
-          this.timers.right.dasStart = now;
-          this.timers.right.lastRepeat = now;
-          this.timers.right.active = true;
-          // Immediate first move
-          if (this.callbacks.moveRight) {
-            this.callbacks.moveRight();
-          }
+      }
+      handled = true;
+    }
+    // Check for move right
+    else if (key === bindings.moveRight.toLowerCase()) {
+      if (!this.keys.right) {
+        this.keys.right = true;
+        this.timers.right.dasStart = now;
+        this.timers.right.lastRepeat = now;
+        this.timers.right.active = true;
+        // Immediate first move
+        if (this.callbacks.moveRight) {
+          this.callbacks.moveRight();
         }
-        handled = true;
-        break;
-
-      case 'ArrowDown':
-      case 's':
-      case 'S':
-        if (!this.keys.down) {
-          this.keys.down = true;
-          this.timers.down.dasStart = now;
-          this.timers.down.lastRepeat = now;
-          this.timers.down.active = true;
-          // Immediate first move
-          if (this.callbacks.moveDown) {
-            this.callbacks.moveDown();
-          }
+      }
+      handled = true;
+    }
+    // Check for soft drop
+    else if (key === bindings.softDrop.toLowerCase()) {
+      if (!this.keys.down) {
+        this.keys.down = true;
+        this.timers.down.dasStart = now;
+        this.timers.down.lastRepeat = now;
+        this.timers.down.active = true;
+        // Immediate first move
+        if (this.callbacks.moveDown) {
+          this.callbacks.moveDown();
         }
-        handled = true;
-        break;
-
-      case 'ArrowUp':
-      case 'w':
-      case 'W':
-        if (!this.keys.up) {
-          this.keys.up = true;
-          // Rotation is immediate, no DAS/ARR
-          if (this.callbacks.rotate) {
-            this.callbacks.rotate();
-          }
+      }
+      handled = true;
+    }
+    // Check for rotate
+    else if (key === bindings.rotate.toLowerCase()) {
+      if (!this.keys.up) {
+        this.keys.up = true;
+        // Rotation is immediate, no DAS/ARR
+        if (this.callbacks.rotate) {
+          this.callbacks.rotate();
         }
-        handled = true;
-        break;
-
-      case ' ':
-        if (!this.keys.space) {
-          this.keys.space = true;
-          // Hard drop is immediate, no DAS/ARR
-          if (this.callbacks.hardDrop) {
-            this.callbacks.hardDrop();
-          }
+      }
+      handled = true;
+    }
+    // Check for hard drop
+    else if (key === bindings.hardDrop.toLowerCase() || (bindings.hardDrop === ' ' && e.key === ' ')) {
+      if (!this.keys.space) {
+        this.keys.space = true;
+        // Hard drop is immediate, no DAS/ARR
+        if (this.callbacks.hardDrop) {
+          this.callbacks.hardDrop();
         }
-        handled = true;
-        break;
-
-      case 'c':
-      case 'C':
-      case 'Shift':
-        if (!this.keys.hold) {
-          this.keys.hold = true;
-          // Hold is immediate, no DAS/ARR
-          if (this.callbacks.hold) {
-            this.callbacks.hold();
-          }
+      }
+      handled = true;
+    }
+    // Check for hold
+    else if (key === bindings.hold.toLowerCase()) {
+      if (!this.keys.hold) {
+        this.keys.hold = true;
+        // Hold is immediate, no DAS/ARR
+        if (this.callbacks.hold) {
+          this.callbacks.hold();
         }
-        handled = true;
-        break;
-
-      case 'p':
-      case 'P':
-      case 'Escape':
-        if (!this.keys.pause) {
-          this.keys.pause = true;
-          // Pause is immediate, no DAS/ARR
-          if (this.callbacks.pause) {
-            this.callbacks.pause();
-          }
+      }
+      handled = true;
+    }
+    // Check for pause
+    else if (key === bindings.pause.toLowerCase()) {
+      if (!this.keys.pause) {
+        this.keys.pause = true;
+        // Pause is immediate, no DAS/ARR
+        if (this.callbacks.pause) {
+          this.callbacks.pause();
         }
-        handled = true;
-        break;
+      }
+      handled = true;
     }
 
     if (handled) {
@@ -200,57 +198,46 @@ class InputManager {
    */
   handleKeyUp(e) {
     let handled = false;
+    const key = e.key.toLowerCase();
+    const bindings = this.settings.keyBindings;
 
-    switch (e.key) {
-      case 'ArrowLeft':
-      case 'a':
-      case 'A':
-        this.keys.left = false;
-        this.timers.left.active = false;
-        handled = true;
-        break;
-
-      case 'ArrowRight':
-      case 'd':
-      case 'D':
-        this.keys.right = false;
-        this.timers.right.active = false;
-        handled = true;
-        break;
-
-      case 'ArrowDown':
-      case 's':
-      case 'S':
-        this.keys.down = false;
-        this.timers.down.active = false;
-        handled = true;
-        break;
-
-      case 'ArrowUp':
-      case 'w':
-      case 'W':
-        this.keys.up = false;
-        handled = true;
-        break;
-
-      case ' ':
-        this.keys.space = false;
-        handled = true;
-        break;
-
-      case 'c':
-      case 'C':
-      case 'Shift':
-        this.keys.hold = false;
-        handled = true;
-        break;
-
-      case 'p':
-      case 'P':
-      case 'Escape':
-        this.keys.pause = false;
-        handled = true;
-        break;
+    // Check for move left
+    if (key === bindings.moveLeft.toLowerCase()) {
+      this.keys.left = false;
+      this.timers.left.active = false;
+      handled = true;
+    }
+    // Check for move right
+    else if (key === bindings.moveRight.toLowerCase()) {
+      this.keys.right = false;
+      this.timers.right.active = false;
+      handled = true;
+    }
+    // Check for soft drop
+    else if (key === bindings.softDrop.toLowerCase()) {
+      this.keys.down = false;
+      this.timers.down.active = false;
+      handled = true;
+    }
+    // Check for rotate
+    else if (key === bindings.rotate.toLowerCase()) {
+      this.keys.up = false;
+      handled = true;
+    }
+    // Check for hard drop
+    else if (key === bindings.hardDrop.toLowerCase() || (bindings.hardDrop === ' ' && e.key === ' ')) {
+      this.keys.space = false;
+      handled = true;
+    }
+    // Check for hold
+    else if (key === bindings.hold.toLowerCase()) {
+      this.keys.hold = false;
+      handled = true;
+    }
+    // Check for pause
+    else if (key === bindings.pause.toLowerCase()) {
+      this.keys.pause = false;
+      handled = true;
     }
 
     if (handled) {

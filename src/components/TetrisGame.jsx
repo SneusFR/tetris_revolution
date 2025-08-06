@@ -103,29 +103,42 @@ const TetrisGame = () => {
     };
   }, []);
 
-  // Optimized game loop with requestAnimationFrame
+  // Optimized game loop with requestAnimationFrame limited to 60 FPS
   useEffect(() => {
     if (isPaused || gameOver || isHardDropping || isAnimatingLines) return;
 
     const step = gameSpeed; // en ms/ligne
+    const targetFPS = 60;
+    const frameTime = 1000 / targetFPS; // 16.67ms for 60 FPS
     let raf;
+    let lastFrameTime = 0;
 
     const loop = (t) => {
-      if (!lastTimeRef.current) lastTimeRef.current = t;
-      const dt = t - lastTimeRef.current;
-      lastTimeRef.current = t;
-
-      accRef.current += dt;
-      while (accRef.current >= step) {
-        const piece = currentPieceRef.current;
-        if (!piece) break;
-        if (isValidPosition(boardStateRef.current, piece, piece.x, piece.y + 1)) {
-          setCurrentPiece(p => p ? { ...p, y: p.y + 1 } : p);
-        } else {
-          lockPieceRef.current();
+      // Limit to 60 FPS
+      if (!lastFrameTime) lastFrameTime = t;
+      const deltaFrame = t - lastFrameTime;
+      
+      // Only process if enough time has passed for target FPS
+      if (deltaFrame >= frameTime) {
+        // Calculate actual dt for game logic (capped at frameTime)
+        const dt = Math.min(deltaFrame, frameTime * 2); // Cap at 2 frames to prevent huge jumps
+        
+        accRef.current += dt;
+        while (accRef.current >= step) {
+          const piece = currentPieceRef.current;
+          if (!piece) break;
+          if (isValidPosition(boardStateRef.current, piece, piece.x, piece.y + 1)) {
+            setCurrentPiece(p => p ? { ...p, y: p.y + 1 } : p);
+          } else {
+            lockPieceRef.current();
+          }
+          accRef.current -= step;
         }
-        accRef.current -= step;
+        
+        // Update last frame time, accounting for the frame time to maintain consistent 60 FPS
+        lastFrameTime = t - (deltaFrame % frameTime);
       }
+      
       raf = requestAnimationFrame(loop);
     };
 
@@ -496,11 +509,20 @@ const TetrisGame = () => {
     // Initialize input manager
     inputManager.init();
     
-    // Update input manager settings from store
+    // Update input manager settings from store including key bindings
     inputManager.updateSettings({
       das: settings.das,
       arr: settings.arr,
-      sdf: settings.sdf
+      sdf: settings.sdf,
+      keyBindings: settings.keyBindings || {
+        moveLeft: 'ArrowLeft',
+        moveRight: 'ArrowRight',
+        softDrop: 'ArrowDown',
+        hardDrop: ' ',
+        rotate: 'ArrowUp',
+        hold: 'c',
+        pause: 'p'
+      }
     });
     
     // Set up callbacks for game actions
@@ -528,7 +550,7 @@ const TetrisGame = () => {
       inputManager.destroy();
       window.removeEventListener('keydown', handleGameOverRestart);
     };
-  }, [moveLeft, moveRight, moveDown, rotate, hardDrop, hold, isPaused, gameOver, settings.das, settings.arr, settings.sdf]);
+  }, [moveLeft, moveRight, moveDown, rotate, hardDrop, hold, isPaused, gameOver, settings.das, settings.arr, settings.sdf, settings.keyBindings]);
 
   const renderCell = (value, x, y, isGhost = false, ghostColor = null) => {
     const isEmpty = value === 0 && !isGhost;
@@ -718,20 +740,55 @@ const TetrisGame = () => {
   // Memoize the display board to avoid recalculating on every render
   const displayBoard = useMemo(() => getBoardWithGhost(), [board, currentPiece, ghostY, settings.ghostPiece, isAnimatingLines, disappearingLines, highlightedLines]);
 
+  // Helper function to display key names
+  const getKeyDisplay = (key) => {
+    const keyMap = {
+      ' ': 'Espace',
+      'ArrowLeft': '←',
+      'ArrowRight': '→',
+      'ArrowUp': '↑',
+      'ArrowDown': '↓',
+      'Enter': 'Entrée',
+      'Escape': 'Échap',
+      'Shift': 'Maj',
+      'Control': 'Ctrl',
+      'Alt': 'Alt',
+      'Tab': 'Tab',
+      'Backspace': 'Retour',
+      'Delete': 'Suppr'
+    };
+    return keyMap[key] || key.toUpperCase();
+  };
+
   return (
     <div className="flex gap-8 p-8">
       {/* Left Panel - Controls and Hold */}
       <div className="flex flex-col gap-4">
         {/* Controls */}
         <div className="card p-4">
-          <h3 className="text-sm font-bold text-gray-400 mb-2">CONTROLS</h3>
+          <h3 className="text-sm font-bold text-gray-400 mb-2">CONTRÔLES</h3>
           <div className="text-xs space-y-1">
-            <p>← → : Déplacer</p>
-            <p>↓ : Descendre</p>
-            <p>↑ : Tourner</p>
-            <p>Espace : Drop</p>
-            <p>C : Hold</p>
-            <p>P : Pause</p>
+            {(() => {
+              const keyBindings = settings.keyBindings || {
+                moveLeft: 'ArrowLeft',
+                moveRight: 'ArrowRight',
+                softDrop: 'ArrowDown',
+                hardDrop: ' ',
+                rotate: 'ArrowUp',
+                hold: 'c',
+                pause: 'p'
+              };
+              return (
+                <>
+                  <p><span className="font-mono">{getKeyDisplay(keyBindings.moveLeft)} {getKeyDisplay(keyBindings.moveRight)}</span> : Déplacer</p>
+                  <p><span className="font-mono">{getKeyDisplay(keyBindings.softDrop)}</span> : Descendre</p>
+                  <p><span className="font-mono">{getKeyDisplay(keyBindings.rotate)}</span> : Tourner</p>
+                  <p><span className="font-mono">{getKeyDisplay(keyBindings.hardDrop)}</span> : Drop</p>
+                  <p><span className="font-mono">{getKeyDisplay(keyBindings.hold)}</span> : Hold</p>
+                  <p><span className="font-mono">{getKeyDisplay(keyBindings.pause)}</span> : Pause</p>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -831,7 +888,7 @@ const TetrisGame = () => {
               >
                 <div className="text-center">
                   <h2 className="text-4xl font-bold text-white mb-4">PAUSE</h2>
-                  <p className="text-gray-300">Appuyez sur P pour continuer</p>
+                  <p className="text-gray-300">Appuyez sur {getKeyDisplay((settings.keyBindings || { pause: 'p' }).pause)} pour continuer</p>
                 </div>
               </motion.div>
             )}

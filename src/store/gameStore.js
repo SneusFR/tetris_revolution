@@ -34,6 +34,16 @@ const useGameStore = create(
         das: 100,  // Delayed Auto Shift in milliseconds
         arr: 0,    // Auto Repeat Rate in milliseconds (0 = instant)
         sdf: 1,    // Soft Drop Factor
+        // Key bindings
+        keyBindings: {
+          moveLeft: 'ArrowLeft',
+          moveRight: 'ArrowRight',
+          softDrop: 'ArrowDown',
+          hardDrop: ' ',
+          rotate: 'ArrowUp',
+          hold: 'c',
+          pause: 'p'
+        }
       },
       
       // Shop items
