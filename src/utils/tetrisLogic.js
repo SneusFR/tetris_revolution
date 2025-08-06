@@ -76,11 +76,22 @@ export const createBoard = () => {
 // Get random tetromino
 export const getRandomTetromino = () => {
   const name = TETROMINO_NAMES[Math.floor(Math.random() * TETROMINO_NAMES.length)];
+  const tetromino = TETROMINOES[name];
+  
+  // Find the first row that contains blocks to determine proper spawn position
+  let firstBlockRow = 0;
+  for (let row = 0; row < tetromino.shape.length; row++) {
+    if (tetromino.shape[row].some(cell => cell !== 0)) {
+      firstBlockRow = row;
+      break;
+    }
+  }
+  
   return {
     name,
-    ...TETROMINOES[name],
-    x: Math.floor(BOARD_WIDTH / 2) - Math.floor(TETROMINOES[name].shape[0].length / 2),
-    y: 0
+    ...tetromino,
+    x: Math.floor(BOARD_WIDTH / 2) - Math.floor(tetromino.shape[0].length / 2),
+    y: -firstBlockRow // Start above the board to account for empty rows in piece matrix
   };
 };
 
@@ -216,11 +227,35 @@ export const getGhostPieceY = (board, piece) => {
 export const isGameOver = (board, newPiece = null) => {
   // If we have a new piece, check if it can be placed at its spawn position
   if (newPiece) {
-    return !isValidPosition(board, newPiece, newPiece.x, newPiece.y);
+    // Try to place the piece at its spawn position
+    const canPlace = isValidPosition(board, newPiece, newPiece.x, newPiece.y);
+    
+    // If it can't be placed at spawn, try moving it up slightly
+    if (!canPlace) {
+      // Try placing it one row higher
+      const canPlaceHigher = isValidPosition(board, newPiece, newPiece.x, newPiece.y - 1);
+      if (canPlaceHigher) {
+        // Update the piece position to the valid position
+        newPiece.y = newPiece.y - 1;
+        return false;
+      }
+      return true; // Game over if it can't be placed even higher
+    }
+    
+    return false; // Piece can be placed normally
   }
   
-  // Fallback: check if top rows have blocks (but this should rarely be used)
-  return board[0].some(cell => cell !== 0) || board[1].some(cell => cell !== 0);
+  // Fallback: check if the spawn area is blocked
+  // Check only the visible area where pieces actually spawn (rows 0-1)
+  for (let row = 0; row < 2; row++) {
+    for (let col = 3; col < 7; col++) { // Center columns where pieces spawn
+      if (board[row] && board[row][col] !== 0) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
 };
 
 // Wall kick data for SRS (Super Rotation System)
@@ -325,10 +360,23 @@ export const generateBag = () => {
     [bag[i], bag[j]] = [bag[j], bag[i]];
   }
   
-  return bag.map(name => ({
-    name,
-    ...TETROMINOES[name],
-    x: Math.floor(BOARD_WIDTH / 2) - Math.floor(TETROMINOES[name].shape[0].length / 2),
-    y: 0
-  }));
+  return bag.map(name => {
+    const tetromino = TETROMINOES[name];
+    
+    // Find the first row that contains blocks to determine proper spawn position
+    let firstBlockRow = 0;
+    for (let row = 0; row < tetromino.shape.length; row++) {
+      if (tetromino.shape[row].some(cell => cell !== 0)) {
+        firstBlockRow = row;
+        break;
+      }
+    }
+    
+    return {
+      name,
+      ...tetromino,
+      x: Math.floor(BOARD_WIDTH / 2) - Math.floor(tetromino.shape[0].length / 2),
+      y: -firstBlockRow // Start above the board to account for empty rows in piece matrix
+    };
+  });
 };

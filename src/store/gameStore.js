@@ -13,6 +13,7 @@ const useGameStore = create(
       isPaused: false,
       isGameOver: false,
       gameSpeed: 1000,
+      levelChanged: false,
       
       // Combo system
       currentCombo: 0,
@@ -73,10 +74,39 @@ const useGameStore = create(
         highScore: Math.max(state.highScore, state.score + points),
       })),
       
-      updateLevel: () => set((state) => ({
-        level: Math.floor(state.lines / 10) + 1,
-        gameSpeed: Math.max(100, 1000 - (Math.floor(state.lines / 10) * 100)),
-      })),
+      updateLevel: () => set((state) => {
+        const newLevel = Math.floor(state.lines / 10) + 1;
+        const levelChanged = newLevel !== state.level;
+        
+        // Calcul de la vitesse avec une progression plus fluide
+        // Niveau 1: 1000ms, Niveau 2: 900ms, etc. jusqu'à 100ms minimum
+        const newGameSpeed = Math.max(50, 1000 - ((newLevel - 1) * 80));
+        
+        return {
+          level: newLevel,
+          gameSpeed: newGameSpeed,
+          levelChanged: levelChanged, // Pour déclencher des animations
+        };
+      }),
+      
+      // Nouvelle fonction pour obtenir les lignes nécessaires pour le prochain niveau
+      getLinesForNextLevel: () => {
+        const state = get();
+        const currentLevel = state.level;
+        const linesForNextLevel = currentLevel * 10;
+        const remainingLines = linesForNextLevel - state.lines;
+        return Math.max(0, remainingLines);
+      },
+      
+      // Fonction pour obtenir le pourcentage de progression vers le prochain niveau
+      getLevelProgress: () => {
+        const state = get();
+        const currentLevel = state.level;
+        const linesAtStartOfLevel = (currentLevel - 1) * 10;
+        const linesForThisLevel = 10;
+        const progressInLevel = state.lines - linesAtStartOfLevel;
+        return Math.min(100, (progressInLevel / linesForThisLevel) * 100);
+      },
       
       updateLines: (clearedLines) => set((state) => ({
         lines: state.lines + clearedLines,
@@ -106,6 +136,7 @@ const useGameStore = create(
         gameSpeed: 1000,
         currentCombo: 0,
         maxCombo: 0,
+        levelChanged: false,
       }),
       
       // Combo actions

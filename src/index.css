@@ -290,3 +290,88 @@
 
 .score-impact-glow { animation: score-impact-glow 0.6s ease-out; }
 .score-number-pop { animation: score-number-pop 0.4s ease-out; }
+
+/* Level display animations */
+@keyframes level-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    text-shadow: 0 0 10px currentColor;
+  }
+  50% { 
+    transform: scale(1.05);
+    text-shadow: 0 0 20px currentColor, 0 0 30px currentColor;
+  }
+}
+
+@keyframes progress-fill {
+  0% { 
+    width: 0%;
+    box-shadow: 0 0 5px currentColor;
+  }
+  100% { 
+    box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+  }
+}
+
+@keyframes level-up-explosion {
+  0% { 
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.2) rotate(180deg);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scale(2) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes level-card-glow {
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 60px rgba(0, 255, 255, 0.4);
+  }
+}
+
+@keyframes progress-shimmer {
+  0% { 
+    transform: translateX(-100%);
+  }
+  100% { 
+    transform: translateX(100%);
+  }
+}
+
+@keyframes speed-indicator-pulse {
+  0%, 100% { 
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Level display utility classes */
+.level-pulse { animation: level-pulse 2s ease-in-out infinite; }
+.progress-fill { animation: progress-fill 0.8s ease-out forwards; }
+.level-up-explosion { animation: level-up-explosion 1.5s ease-out forwards; }
+.level-card-glow { animation: level-card-glow 2s ease-in-out infinite; }
+.progress-shimmer { animation: progress-shimmer 2s linear infinite; }
+.speed-indicator-pulse { animation: speed-indicator-pulse 2s ease-in-out infinite; }
+
+/* Responsive level display */
+@media (max-width: 768px) {
+  .level-display {
+    font-size: 0.9rem;
+  }
+  
+  .level-number {
+    font-size: 2.5rem;
+  }
+}

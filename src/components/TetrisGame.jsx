@@ -7,6 +7,7 @@ import VisualEffects from './VisualEffects';
 import ParticleEffects from './ParticleEffects';
 import ScreenShake from './ScreenShake';
 import ScoreImpact from './ScoreImpact';
+import LevelDisplay from './LevelDisplay';
 import {
   createBoard,
   isValidPosition,
@@ -204,8 +205,9 @@ const TetrisGame = () => {
     const linesToClear = getLinesToClear(newBoard);
     
     if (linesToClear.length > 0) {
-      // Clear current piece immediately when lines are being cleared
-      setCurrentPiece(null);
+      // Instead of clearing the current piece immediately, we'll update the board
+      // but keep the current piece visible (it will be filtered during rendering)
+      setBoard(newBoard);
       
       // Start line clearing animation
       setIsAnimatingLines(true);
@@ -224,6 +226,9 @@ const TetrisGame = () => {
           setBoard(clearedBoard);
           setDisappearingLines([]);
           setIsAnimatingLines(false);
+          
+          // Now clear the current piece after the animation
+          setCurrentPiece(null);
           
           // Handle combo system
           incrementCombo();
@@ -362,8 +367,9 @@ const TetrisGame = () => {
     const linesToClear = getLinesToClear(newBoard);
     
     if (linesToClear.length > 0) {
-      // Clear current piece immediately when lines are being cleared
-      setCurrentPiece(null);
+      // Instead of clearing the current piece immediately, we'll update the board
+      // but keep the current piece visible (it will be filtered during rendering)
+      setBoard(newBoard);
       
       // Start line clearing animation
       setIsAnimatingLines(true);
@@ -383,6 +389,9 @@ const TetrisGame = () => {
           setDisappearingLines([]);
           setIsAnimatingLines(false);
           setIsHardDropping(false);
+          
+          // Now clear the current piece after the animation
+          setCurrentPiece(null);
           
           // Handle combo system
           incrementCombo();
@@ -666,8 +675,8 @@ const TetrisGame = () => {
       }
     }
     
-    // Add current piece to the board
-    if (currentPiece) {
+    // Add current piece to the board, but filter out parts that are on disappearing lines
+    if (currentPiece && !isAnimatingLines) {
       for (let row = 0; row < currentPiece.shape.length; row++) {
         for (let col = 0; col < currentPiece.shape[row].length; col++) {
           if (currentPiece.shape[row][col]) {
@@ -681,6 +690,24 @@ const TetrisGame = () => {
           }
         }
       }
+    } else if (currentPiece && isAnimatingLines) {
+      // During line clearing animation, only show parts of the current piece that are NOT on disappearing lines
+      for (let row = 0; row < currentPiece.shape.length; row++) {
+        for (let col = 0; col < currentPiece.shape[row].length; col++) {
+          if (currentPiece.shape[row][col]) {
+            const boardY = currentPiece.y + row;
+            const boardX = currentPiece.x + col;
+            
+            if (boardY >= 0 && boardY < BOARD_HEIGHT && 
+                boardX >= 0 && boardX < BOARD_WIDTH &&
+                !disappearingLines.includes(boardY) && 
+                !highlightedLines.includes(boardY)) {
+              // Only show the piece part if it's not on a line being cleared
+              displayBoard[boardY][boardX] = currentPiece.color + 1;
+            }
+          }
+        }
+      }
     }
     
     return displayBoard;
@@ -689,12 +716,26 @@ const TetrisGame = () => {
   const ghostY = currentPiece && settings.ghostPiece ? getGhostPieceY(board, currentPiece) : null;
   
   // Memoize the display board to avoid recalculating on every render
-  const displayBoard = useMemo(() => getBoardWithGhost(), [board, currentPiece, ghostY, settings.ghostPiece]);
+  const displayBoard = useMemo(() => getBoardWithGhost(), [board, currentPiece, ghostY, settings.ghostPiece, isAnimatingLines, disappearingLines, highlightedLines]);
 
   return (
     <div className="flex gap-8 p-8">
-      {/* Hold Box */}
+      {/* Left Panel - Controls and Hold */}
       <div className="flex flex-col gap-4">
+        {/* Controls */}
+        <div className="card p-4">
+          <h3 className="text-sm font-bold text-gray-400 mb-2">CONTROLS</h3>
+          <div className="text-xs space-y-1">
+            <p>← → : Déplacer</p>
+            <p>↓ : Descendre</p>
+            <p>↑ : Tourner</p>
+            <p>Espace : Drop</p>
+            <p>C : Hold</p>
+            <p>P : Pause</p>
+          </div>
+        </div>
+
+        {/* Hold Box */}
         <div className="card p-4">
           <h3 className="text-sm font-bold text-gray-400 mb-2">HOLD (C)</h3>
           <div className="grid grid-cols-4 gap-1 w-24 h-24">
@@ -835,7 +876,7 @@ const TetrisGame = () => {
         )}
       </div>
 
-      {/* Info Panel */}
+      {/* Right Panel - Next Pieces and Score Info */}
       <div className="flex flex-col gap-4">
         {/* Next Pieces */}
         <div className="card p-4">
@@ -881,20 +922,15 @@ const TetrisGame = () => {
           </div>
         </div>
 
+        {/* Level Display with Progress */}
+        <LevelDisplay />
+
         {/* Score Info */}
         <div className="card p-4">
           <div className="space-y-2">
             <div>
               <p className="text-sm text-gray-400">SCORE</p>
               <p className="text-2xl font-bold">{score.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">LEVEL</p>
-              <p className="text-2xl font-bold">{level}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">LINES</p>
-              <p className="text-2xl font-bold">{lines}</p>
             </div>
             <div>
               <p className="text-sm text-gray-400">COMBO</p>
@@ -908,19 +944,6 @@ const TetrisGame = () => {
                 <p className="text-lg font-bold text-yellow-400">x{maxCombo}</p>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="card p-4">
-          <h3 className="text-sm font-bold text-gray-400 mb-2">CONTROLS</h3>
-          <div className="text-xs space-y-1">
-            <p>← → : Déplacer</p>
-            <p>↓ : Descendre</p>
-            <p>↑ : Tourner</p>
-            <p>Espace : Drop</p>
-            <p>C : Hold</p>
-            <p>P : Pause</p>
           </div>
         </div>
       </div>
