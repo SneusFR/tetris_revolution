@@ -14,8 +14,16 @@ const Shop = ({ onBack }) => {
     purchaseTheme,
     purchaseEffect,
     setCurrentTheme,
-    setCurrentEffect
+    setCurrentEffect,
+    _migrate
   } = useGameStore();
+
+  // Run migration on component mount to ensure new themes are available
+  React.useEffect(() => {
+    if (_migrate) {
+      _migrate();
+    }
+  }, [_migrate]);
 
   const handlePurchaseTheme = (themeId) => {
     purchaseTheme(themeId);

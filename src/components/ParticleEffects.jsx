@@ -1,45 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ParticleEffects = ({ linesCleared, position, effect }) => {
   const [particles, setParticles] = useState([]);
   const [showExplosion, setShowExplosion] = useState(false);
-
-  useEffect(() => {
-    if (linesCleared > 0) {
-      setShowExplosion(true);
-      generateParticles();
-      
-      const timer = setTimeout(() => {
-        setShowExplosion(false);
-        setParticles([]);
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [linesCleared, effect]);
-
-  const generateParticles = () => {
-    const newParticles = [];
-    const particleCount = linesCleared * 20;
-
-    for (let i = 0; i < particleCount; i++) {
-      newParticles.push({
-        id: i,
-        x: position?.x || Math.random() * 300,
-        y: position?.y || Math.random() * 600,
-        vx: (Math.random() - 0.5) * 10,
-        vy: (Math.random() - 0.5) * 10,
-        size: Math.random() * 6 + 2,
-        life: 1,
-        color: getParticleColor(effect, i),
-        rotation: Math.random() * 360,
-        rotationSpeed: (Math.random() - 0.5) * 10
-      });
-    }
-
-    setParticles(newParticles);
-  };
 
   const getParticleColor = (effect, index) => {
     switch (effect) {
@@ -57,6 +21,42 @@ const ParticleEffects = ({ linesCleared, position, effect }) => {
         return `hsl(${Math.random() * 360}, 70%, 60%)`;
     }
   };
+
+  const generateParticles = useCallback(() => {
+    const newParticles = [];
+    const particleCount = Math.min(linesCleared * 15, 50); // Reduced from 20 to 15, max 50
+
+    for (let i = 0; i < particleCount; i++) {
+      newParticles.push({
+        id: i,
+        x: position?.x || Math.random() * 300,
+        y: position?.y || Math.random() * 600,
+        vx: (Math.random() - 0.5) * 8, // Reduced velocity
+        vy: (Math.random() - 0.5) * 8,
+        size: Math.random() * 5 + 2, // Slightly smaller particles
+        life: 1,
+        color: getParticleColor(effect, i),
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 8
+      });
+    }
+
+    setParticles(newParticles);
+  }, [linesCleared, effect, position?.x, position?.y]);
+
+  useEffect(() => {
+    if (linesCleared > 0) {
+      setShowExplosion(true);
+      generateParticles();
+      
+      const timer = setTimeout(() => {
+        setShowExplosion(false);
+        setParticles([]);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [linesCleared, effect, generateParticles]);
 
   const renderFireExplosion = () => (
     <div className="absolute inset-0 pointer-events-none">

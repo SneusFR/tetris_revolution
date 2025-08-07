@@ -4,6 +4,20 @@ import { persist } from 'zustand/middleware';
 const useGameStore = create(
   persist(
     (set, get) => ({
+      // Migration function to ensure new themes are added
+      _migrate: () => {
+        const state = get();
+        const hasGlassmorphism = state.themes?.some(t => t.id === 'glassmorphism');
+        
+        if (!hasGlassmorphism) {
+          set((state) => ({
+            themes: [
+              ...state.themes,
+              { id: 'glassmorphism', name: 'Glassmorphism', price: 1200, owned: true, colors: ['rgba(255, 255, 255, 0.08)', 'rgba(255, 182, 193, 0.1)', 'rgba(173, 216, 230, 0.1)', 'rgba(255, 255, 224, 0.08)', 'rgba(221, 160, 221, 0.1)', 'rgba(152, 251, 152, 0.08)', 'rgba(181, 91, 12, 0.1)'] }
+            ]
+          }));
+        }
+      },
       // Game state
       score: 0,
       level: 1,
@@ -53,6 +67,7 @@ const useGameStore = create(
         { id: 'galaxy', name: 'Galaxy', price: 1000, owned: false, colors: ['#9b59b6', '#3498db', '#e74c3c', '#f39c12', '#1abc9c', '#34495e', '#e67e22'] },
         { id: 'cyberpunk', name: 'Cyberpunk', price: 1500, owned: false, colors: ['#ff006e', '#fb5607', '#ffbe0b', '#8338ec', '#3a86ff', '#06ffa5', '#ff4365'] },
         { id: 'pastel', name: 'Pastel', price: 750, owned: false, colors: ['#ffd3e1', '#c9f0ff', '#fff5ba', '#e4c1f9', '#a8e6cf', '#ffd3b6', '#ffaaa5'] },
+        { id: 'glassmorphism', name: 'Glassmorphism', price: 1200, owned: true, colors: ['rgba(255, 255, 255, 0.45)', 'rgba(255, 182, 193, 0.5)', 'rgba(173, 216, 230, 0.5)', 'rgba(255, 255, 224, 0.45)', 'rgba(221, 160, 221, 0.5)', 'rgba(152, 251, 152, 0.45)', 'rgba(255, 218, 185, 0.5)'] },
       ],
       
       effects: [

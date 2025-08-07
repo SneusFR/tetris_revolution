@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ScoreImpact = ({ 
@@ -14,26 +14,10 @@ const ScoreImpact = ({
   const [showImpact, setShowImpact] = useState(false);
   const [impactParticles, setImpactParticles] = useState([]);
 
-  useEffect(() => {
-    if (linesCleared > 0) {
-      setShowImpact(true);
-      generateImpactParticles();
-      
-      const timer = setTimeout(() => {
-        setShowImpact(false);
-        setImpactParticles([]);
-        if (onAnimationComplete) {
-          onAnimationComplete();
-        }
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [linesCleared, onAnimationComplete]);
-
-  const generateImpactParticles = () => {
+  // Optimize particle generation with useCallback
+  const generateImpactParticles = useCallback(() => {
     const particles = [];
-    const particleCount = Math.min(linesCleared * 15, 60); // Max 60 particles
+    const particleCount = Math.min(linesCleared * 12, 40); // Reduced from 15*60 to 12*40 for better performance
     const intensity = Math.min(linesCleared, 4); // Max intensity for Tetris
 
     for (let i = 0; i < particleCount; i++) {
@@ -51,7 +35,24 @@ const ScoreImpact = ({
       });
     }
     setImpactParticles(particles);
-  };
+  }, [linesCleared, effect, position.x, position.y]);
+
+  useEffect(() => {
+    if (linesCleared > 0) {
+      setShowImpact(true);
+      generateImpactParticles();
+      
+      const timer = setTimeout(() => {
+        setShowImpact(false);
+        setImpactParticles([]);
+        if (onAnimationComplete) {
+          onAnimationComplete();
+        }
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [linesCleared, onAnimationComplete, generateImpactParticles]);
 
   const getParticleColor = (effect, index, intensity) => {
     const alpha = 0.8 + (intensity * 0.2);

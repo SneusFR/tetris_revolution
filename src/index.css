@@ -164,17 +164,21 @@
   }
 }
 
-/* Line clearing effect classes */
+/* Line clearing effect classes - optimized for performance */
 .line-highlight {
   animation: line-highlight 0.15s ease-out forwards;
   position: relative;
   z-index: 10;
+  will-change: background-color, box-shadow, transform;
+  transform: translateZ(0); /* Force hardware acceleration */
 }
 
 .line-disappear {
   animation: line-disappear 0.25s ease-in-out forwards;
   position: relative;
   z-index: 10;
+  will-change: opacity, transform, filter;
+  transform: translateZ(0); /* Force hardware acceleration */
 }
 
 .line-collapse {

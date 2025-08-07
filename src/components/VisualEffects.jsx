@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const VisualEffects = ({ effect, isActive, boardRef, onLinesCleared }) => {
@@ -8,11 +8,11 @@ const VisualEffects = ({ effect, isActive, boardRef, onLinesCleared }) => {
   const [electricBolts, setElectricBolts] = useState([]);
   const [rainbowColors, setRainbowColors] = useState([]);
 
-  // Matrix effect - falling code characters
+  // Matrix effect - falling code characters (optimized)
   useEffect(() => {
     if (effect === 'matrix' && isActive) {
       const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-      const columns = 20;
+      const columns = 15; // Reduced from 20 to 15
       const drops = Array(columns).fill(0);
       
       const interval = setInterval(() => {
@@ -20,7 +20,7 @@ const VisualEffects = ({ effect, isActive, boardRef, onLinesCleared }) => {
           const newChars = [];
           for (let i = 0; i < columns; i++) {
             const char = chars[Math.floor(Math.random() * chars.length)];
-            const x = i * 15;
+            const x = i * 20; // Increased spacing
             const y = drops[i] * 20;
             
             if (y > 600 && Math.random() > 0.975) {
@@ -29,16 +29,16 @@ const VisualEffects = ({ effect, isActive, boardRef, onLinesCleared }) => {
             drops[i]++;
             
             newChars.push({
-              id: `${i}-${Date.now()}`,
+              id: `${i}-${drops[i]}`, // More stable ID
               char,
               x,
               y: y % 620,
-              opacity: Math.random() * 0.8 + 0.2
+              opacity: Math.random() * 0.6 + 0.4 // Reduced opacity range for better performance
             });
           }
           return newChars;
         });
-      }, 100);
+      }, 120); // Slightly slower update rate
 
       return () => clearInterval(interval);
     } else {
@@ -46,22 +46,22 @@ const VisualEffects = ({ effect, isActive, boardRef, onLinesCleared }) => {
     }
   }, [effect, isActive]);
 
-  // Fire effect - animated particles
+  // Fire effect - animated particles (optimized)
   useEffect(() => {
     if (effect === 'fire' && isActive) {
       const interval = setInterval(() => {
         setFireParticles(prev => {
           const newParticles = [...prev];
           
-          // Add new particles
-          for (let i = 0; i < 5; i++) {
+          // Add fewer new particles for better performance
+          for (let i = 0; i < 3; i++) {
             newParticles.push({
               id: Date.now() + i,
               x: Math.random() * 300,
               y: 600,
-              size: Math.random() * 8 + 4,
+              size: Math.random() * 6 + 3, // Slightly smaller particles
               life: 1,
-              velocity: Math.random() * 3 + 1
+              velocity: Math.random() * 2.5 + 1
             });
           }
           
@@ -70,12 +70,13 @@ const VisualEffects = ({ effect, isActive, boardRef, onLinesCleared }) => {
             .map(particle => ({
               ...particle,
               y: particle.y - particle.velocity,
-              life: particle.life - 0.02,
-              size: particle.size * 0.98
+              life: particle.life - 0.025, // Slightly faster decay
+              size: particle.size * 0.97
             }))
-            .filter(particle => particle.life > 0 && particle.y > -50);
+            .filter(particle => particle.life > 0 && particle.y > -50)
+            .slice(0, 30); // Limit total particles
         });
-      }, 50);
+      }, 60); // Slightly slower update rate
 
       return () => clearInterval(interval);
     } else {

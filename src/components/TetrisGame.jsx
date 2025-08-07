@@ -298,8 +298,8 @@ const TetrisGame = () => {
           
           setCurrentPiece(newPiece);
           setCanHold(true);
-        }, 250); // Duration of disappear animation
-      }, 150); // Duration of highlight animation
+        }, 125); // Duration of disappear animation (2x faster)
+      }, 75); // Duration of highlight animation (2x faster)
     } else {
       // No lines to clear, reset combo
       resetCombo();
@@ -461,8 +461,8 @@ const TetrisGame = () => {
           
           setCurrentPiece(newPiece);
           setCanHold(true);
-        }, 250); // Duration of disappear animation
-      }, 150); // Duration of highlight animation
+        }, 125); // Duration of disappear animation (2x faster)
+      }, 75); // Duration of highlight animation (2x faster)
     } else {
       // No lines to clear, reset combo
       resetCombo();
@@ -562,25 +562,103 @@ const TetrisGame = () => {
     const isHighlighted = highlightedLines.includes(y);
     const isDisappearing = disappearingLines.includes(y);
     
+    // Special handling for glassmorphism theme
+    const isGlassmorphism = currentTheme === 'glassmorphism';
+    
     if (isGhost && ghostColor !== null) {
-      // Ghost piece with clean outline that matches exactly the solid blocks
+      if (isGlassmorphism) {
+        // Glassmorphism ghost piece - transparent with glass effect
+        return (
+          <div
+            key={`${x}-${y}`}
+            className="relative w-full h-full"
+            style={{
+              backgroundColor: color,
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              opacity: 0.4,
+              backdropFilter: 'blur(5px)',
+              boxShadow: `
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 2px rgba(0, 0, 0, 0.1)
+              `,
+              borderRadius: '2px',
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* Glass highlight effect for ghost */}
+            <div 
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(255, 255, 255, 0.05) 100%)',
+                borderRadius: '1px'
+              }}
+            />
+          </div>
+        );
+      } else {
+        // Ghost piece with clean outline that matches exactly the solid blocks
+        return (
+          <div
+            key={`${x}-${y}`}
+            className="relative w-full h-full"
+            style={{
+              backgroundColor: 'transparent',
+              border: `2px solid ${color}`,
+              opacity: 0.5,
+              boxSizing: 'border-box'
+            }}
+          >
+            {/* Subtle inner glow for better visibility */}
+            <div 
+              className="absolute inset-0"
+              style={{
+                backgroundColor: `${color}20`,
+                margin: '2px'
+              }}
+            />
+          </div>
+        );
+      }
+    }
+    
+    if (isGlassmorphism && !isEmpty) {
+      // Glassmorphism style - transparent glass effect
       return (
         <div
           key={`${x}-${y}`}
-          className="relative w-full h-full"
+          className={`
+            relative w-full h-full
+            ${settings.gridLines ? 'border border-white/10' : 'border-transparent'}
+            ${isHighlighted ? 'line-highlight' : ''}
+            ${isDisappearing ? 'line-disappear' : ''}
+          `}
           style={{
-            backgroundColor: 'transparent',
-            border: `2px solid ${color}`,
-            opacity: 0.5,
-            boxSizing: 'border-box'
+            backgroundColor: color,
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: `
+              inset 0 1px 0 rgba(255, 255, 255, 0.3),
+              inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+              0 2px 4px rgba(0, 0, 0, 0.1)
+            `,
+            borderRadius: '2px'
           }}
         >
-          {/* Subtle inner glow for better visibility */}
+          {/* Glass highlight effect */}
           <div 
             className="absolute inset-0"
             style={{
-              backgroundColor: `${color}20`,
-              margin: '2px'
+              background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%, rgba(255, 255, 255, 0.1) 100%)',
+              borderRadius: '1px'
+            }}
+          />
+          {/* Subtle inner border for glass effect */}
+          <div 
+            className="absolute inset-0"
+            style={{
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '1px',
+              margin: '1px'
             }}
           />
         </div>
