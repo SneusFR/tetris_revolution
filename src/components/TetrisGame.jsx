@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import useGameStore from '../store/gameStore';
 import useAuthStore from '../store/authStore';
+import useEffectStore from '../store/effectStore';
+import useThemeStore from '../store/themeStore';
 import soundManager from '../utils/soundManager';
 import inputManager from '../utils/inputManager';
 import VisualEffects from './VisualEffects';
@@ -42,6 +44,7 @@ const TetrisGame = () => {
   const [shakeIntensity, setShakeIntensity] = useState(0);
   const [scoreImpactKey, setScoreImpactKey] = useState(0);
   const [scoreImpactData, setScoreImpactData] = useState(null);
+  const [activeEffect, setActiveEffect] = useState('none'); // État local pour l'effet actif
   const gameLoopRef = useRef();
   const boardRef = useRef();
   const scoreRef = useRef();
@@ -56,9 +59,9 @@ const TetrisGame = () => {
     settings,
     themes,
     currentTheme,
-    currentEffect,
     currentCombo,
     maxCombo,
+    totalPlayTime,
     updateScore,
     updateLevel,
     updateLines,
@@ -66,10 +69,13 @@ const TetrisGame = () => {
     setGameOver,
     resetGame,
     incrementCombo,
-    resetCombo
+    resetCombo,
+    setCurrentEffect: setGameStoreEffect
   } = useGameStore();
 
-  const { isAuthenticated, saveGameResult } = useAuthStore();
+  const { isAuthenticated, user, saveGameResult } = useAuthStore();
+  const { fetchEffects, currentEffect: serverEffect } = useEffectStore();
+  const { fetchThemes, currentTheme: serverTheme } = useThemeStore();
 
   const theme = themes.find(t => t.id === currentTheme);
   const colors = theme ? theme.colors : ['#00ffff', '#ff00ff', '#00ff00', '#ffff00', '#ff8800', '#ff0044', '#8800ff'];
@@ -88,13 +94,13 @@ const TetrisGame = () => {
   
   // Update hue for rainbow effect every 100ms
   useEffect(() => {
-    if (currentEffect === 'rainbow') {
+    if (activeEffect === 'rainbow') {
       const interval = setInterval(() => {
         hueRef.current = (hueRef.current + 5) % 360;
       }, 100);
       return () => clearInterval(interval);
     }
-  }, [currentEffect]);
+  }, [activeEffect]);
 
   // Initialize game
   useEffect(() => {
@@ -106,6 +112,72 @@ const TetrisGame = () => {
     };
   }, []);
 
+  // Synchroniser les effets au démarrage du jeu si l'utilisateur est authentifié
+  useEffect(() => {
+    const syncEffects = async () => {
+      if (isAuthenticated && user) {
+        // Utiliser l'effet du serveur (depuis les settings de l'utilisateur)
+        const userEffect = user.settings?.visualEffect || 'none';
+        setActiveEffect(userEffect);
+        
+        // Synchroniser avec le gameStore local
+        setGameStoreEffect(userEffect);
+        
+        console.log('Effet synchronisé depuis le serveur:', userEffect);
+      } else {
+        // Si non authentifié, utiliser l'effet du gameStore local
+        const localEffect = useGameStore.getState().currentEffect || 'none';
+        setActiveEffect(localEffect);
+        console.log('Effet local utilisé:', localEffect);
+      }
+    };
+    
+    syncEffects();
+  }, [isAuthenticated, user?.settings?.visualEffect, setGameStoreEffect]);
+
+  // Synchroniser quand l'effet du serveur change (après achat/sélection dans la boutique)
+  useEffect(() => {
+    if (serverEffect && serverEffect.id && serverEffect.id !== activeEffect) {
+      setActiveEffect(serverEffect.id);
+      setGameStoreEffect(serverEffect.id);
+      console.log('Effet mis à jour depuis la boutique:', serverEffect.id);
+    }
+  }, [serverEffect?.id, activeEffect, setGameStoreEffect]);
+
+  // Synchroniser les thèmes au démarrage du jeu si l'utilisateur est authentifié
+  useEffect(() => {
+    const syncThemes = async () => {
+      if (isAuthenticated && user) {
+        // Récupérer les thèmes depuis le serveur pour s'assurer d'avoir les données les plus récentes
+        await fetchThemes();
+        
+        // Utiliser le thème du serveur (depuis les settings de l'utilisateur)
+        const userTheme = user.settings?.theme || 'neon';
+        
+        // Synchroniser avec le gameStore local
+        const { setCurrentTheme } = useGameStore.getState();
+        setCurrentTheme(userTheme);
+        
+        console.log('Thème synchronisé depuis le serveur:', userTheme);
+      } else {
+        // Si non authentifié, utiliser le thème du gameStore local
+        const localTheme = useGameStore.getState().currentTheme || 'neon';
+        console.log('Thème local utilisé:', localTheme);
+      }
+    };
+    
+    syncThemes();
+  }, [isAuthenticated, user?.settings?.theme, fetchThemes]);
+
+  // Synchroniser quand le thème du serveur change (après achat/sélection dans la boutique)
+  useEffect(() => {
+    if (serverTheme && serverTheme.id && serverTheme.id !== currentTheme) {
+      const { setCurrentTheme } = useGameStore.getState();
+      setCurrentTheme(serverTheme.id);
+      console.log('Thème mis à jour depuis la boutique:', serverTheme.id);
+    }
+  }, [serverTheme?.id, currentTheme]);
+
   // Save game result when game is over
   useEffect(() => {
     if (gameOver && isAuthenticated && score > 0) {
@@ -113,14 +185,14 @@ const TetrisGame = () => {
         score,
         level,
         linesCleared: lines,
-        timePlayed: Math.floor(Date.now() / 1000), // Approximation du temps de jeu
+        timePlayed: totalPlayTime, // Temps de jeu réel en secondes
         gameMode: 'classic',
         difficulty: 'normal'
       };
       
       saveGameResult(gameData);
     }
-  }, [gameOver, isAuthenticated, score, level, lines, saveGameResult]);
+  }, [gameOver, isAuthenticated, score, level, lines, totalPlayTime, saveGameResult]);
 
   // Optimized game loop with requestAnimationFrame limited to 60 FPS
   useEffect(() => {
@@ -699,7 +771,7 @@ const TetrisGame = () => {
           boxShadow: !isEmpty ? `inset 0 0 10px rgba(255,255,255,0.3)` : 'none'
         }}
       >
-        {!isEmpty && !isGhost && currentEffect === 'rainbow' && (
+        {!isEmpty && !isGhost && activeEffect === 'rainbow' && (
           <div className="absolute inset-0 animate-pulse">
             <div 
               className="absolute inset-0 rounded-sm"
@@ -713,7 +785,7 @@ const TetrisGame = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-white/20 rounded-sm" />
           </div>
         )}
-        {!isEmpty && !isGhost && currentEffect === 'fire' && (
+        {!isEmpty && !isGhost && activeEffect === 'fire' && (
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-t from-red-600 via-orange-500 to-yellow-400 opacity-80 rounded-sm animate-pulse" />
             <div className="absolute inset-0 bg-gradient-to-br from-transparent via-orange-300/50 to-red-500/50 rounded-sm" />
@@ -725,7 +797,7 @@ const TetrisGame = () => {
             />
           </div>
         )}
-        {!isEmpty && !isGhost && currentEffect === 'ice' && (
+        {!isEmpty && !isGhost && activeEffect === 'ice' && (
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-b from-cyan-200 via-blue-300 to-blue-500 opacity-70 rounded-sm" />
             <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-cyan-200/30 to-transparent rounded-sm" />
@@ -737,7 +809,7 @@ const TetrisGame = () => {
             />
           </div>
         )}
-        {!isEmpty && !isGhost && currentEffect === 'electric' && (
+        {!isEmpty && !isGhost && activeEffect === 'electric' && (
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-300 via-blue-400 to-purple-500 opacity-80 rounded-sm animate-pulse" />
             <div 
@@ -752,7 +824,7 @@ const TetrisGame = () => {
             )}
           </div>
         )}
-        {!isEmpty && !isGhost && currentEffect === 'matrix' && (
+        {!isEmpty && !isGhost && activeEffect === 'matrix' && (
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-b from-green-300 via-green-500 to-green-700 opacity-80 rounded-sm" />
             <div 
@@ -962,7 +1034,7 @@ const TetrisGame = () => {
 
           {/* Visual Effects */}
           <VisualEffects 
-            effect={currentEffect}
+            effect={activeEffect}
             isActive={!isPaused && !gameOver}
             boardRef={boardRef}
           />
@@ -971,7 +1043,7 @@ const TetrisGame = () => {
           <ParticleEffects 
             linesCleared={lastLinesCleared}
             position={linesClearPosition}
-            effect={currentEffect}
+            effect={activeEffect}
           />
 
           {/* Pause Overlay */}
@@ -1020,7 +1092,7 @@ const TetrisGame = () => {
             scoreChange={scoreImpactData.scoreChange}
             comboCount={scoreImpactData.comboCount}
             comboBonus={scoreImpactData.comboBonus}
-            effect={currentEffect}
+            effect={activeEffect}
             position={{ 
               x: (BOARD_WIDTH * 30) / 2, 
               y: (BOARD_HEIGHT * 30) / 2 
@@ -1100,6 +1172,22 @@ const TetrisGame = () => {
             )}
           </div>
         </div>
+
+        {/* Active Effect Display */}
+        {activeEffect !== 'none' && (
+          <div className="card p-4">
+            <div>
+              <p className="text-sm text-gray-400">EFFET ACTIF</p>
+              <p className="text-lg font-bold text-cyan-400">
+                {activeEffect === 'rainbow' && 'Arc-en-ciel'}
+                {activeEffect === 'fire' && 'Feu'}
+                {activeEffect === 'ice' && 'Glace'}
+                {activeEffect === 'electric' && 'Électrique'}
+                {activeEffect === 'matrix' && 'Matrix'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import Shop from './components/Shop';
 import Statistics from './components/Statistics';
 import Auth from './components/Auth';
 import Profile from './components/Profile';
+import NetworkStatus from './components/NetworkStatus';
 import soundManager from './utils/soundManager';
 import { FaArrowLeft } from 'react-icons/fa';
 
@@ -143,6 +144,9 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Network Status Alert */}
+      <NetworkStatus />
 
       {/* Animated Background Particles */}
       <div className="fixed inset-0 pointer-events-none">

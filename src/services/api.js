@@ -3,6 +3,11 @@ const API_BASE_URL = 'http://localhost:5000/api';
 class ApiService {
   constructor() {
     this.token = localStorage.getItem('tetris_token');
+    // Cache pour éviter les appels répétés
+    this.cache = new Map();
+    this.lastRequestTimes = new Map();
+    // Délai minimum entre les requêtes (en ms)
+    this.REQUEST_COOLDOWN = 1000; // 1 seconde
   }
 
   // Configuration des headers avec token
@@ -270,11 +275,53 @@ class ApiService {
 
   // Boutique - Effets
   async getEffects() {
-    const response = await fetch(`${API_BASE_URL}/shop/effects`, {
-      headers: this.getHeaders(),
-    });
+    const cacheKey = 'shop/effects';
+    const now = Date.now();
     
-    return await this.handleResponse(response);
+    // Vérifier si on a fait une requête récemment
+    const lastRequestTime = this.lastRequestTimes.get(cacheKey);
+    if (lastRequestTime && (now - lastRequestTime) < this.REQUEST_COOLDOWN) {
+      console.log('Requête getEffects bloquée - trop récente');
+      // Retourner les données du cache si disponibles
+      if (this.cache.has(cacheKey)) {
+        return this.cache.get(cacheKey);
+      }
+      // Sinon, retourner une réponse d'erreur temporaire
+      return { 
+        success: false, 
+        error: 'Requête trop fréquente, veuillez patienter' 
+      };
+    }
+    
+    try {
+      // Enregistrer le temps de la requête
+      this.lastRequestTimes.set(cacheKey, now);
+      
+      const response = await fetch(`${API_BASE_URL}/shop/effects`, {
+        headers: this.getHeaders(),
+      });
+      
+      const data = await this.handleResponse(response);
+      
+      // Mettre en cache la réponse si elle est réussie
+      if (data.success) {
+        this.cache.set(cacheKey, data);
+        // Nettoyer le cache après 30 secondes
+        setTimeout(() => {
+          this.cache.delete(cacheKey);
+        }, 30000);
+      }
+      
+      return data;
+    } catch (error) {
+      // En cas d'erreur, ne pas bloquer les futures requêtes immédiatement
+      // mais attendre un délai plus court
+      setTimeout(() => {
+        this.lastRequestTimes.delete(cacheKey);
+      }, 5000); // 5 secondes au lieu de la cooldown complète
+      
+      throw error;
+    }
   }
 
   async purchaseEffect(effectId) {
@@ -285,6 +332,13 @@ class ApiService {
     });
     
     return await this.handleResponse(response);
+  }
+
+  // Nettoyer le cache et les protections (utile en cas de problème)
+  clearCache() {
+    this.cache.clear();
+    this.lastRequestTimes.clear();
+    console.log('Cache API nettoyé');
   }
 
   // Vérifier si l'utilisateur est connecté

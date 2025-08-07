@@ -40,6 +40,14 @@ const useEffectStore = create((set, get) => ({
             }
           });
         }
+
+        // AJOUT: Synchroniser l'effet actuel avec le gameStore
+        try {
+          const { default: useGameStore } = await import('./gameStore');
+          useGameStore.getState().setCurrentEffect(currentEffectId);
+        } catch (error) {
+          console.warn('Impossible de synchroniser l\'effet avec le gameStore:', error);
+        }
         return { success: true, data: response.data };
       } else {
         set({
@@ -88,20 +96,19 @@ const useEffectStore = create((set, get) => ({
           });
         }
 
-        // Recharger les effets depuis le serveur
+        // Recharger les effets depuis le serveur SEULEMENT en cas de succès
         await get().fetchEffects();
         
         set({ isLoading: false });
         return { success: true, message: response.message };
       } else {
-        // CORRECTION: Recharger les données même en cas d'échec pour synchroniser
-        await get().fetchEffects();
+        // En cas d'échec, ne pas recharger pour éviter les boucles infinies
         set({ isLoading: false, error: response.message });
         return { success: false, error: response.message };
       }
     } catch (error) {
-      // CORRECTION: Recharger les données même en cas d'erreur pour synchroniser
-      await get().fetchEffects();
+      // En cas d'erreur, ne pas recharger pour éviter les boucles infinies
+      console.error('Erreur lors de l\'achat d\'effet:', error);
       set({ isLoading: false, error: error.message });
       return { success: false, error: error.message };
     }
@@ -136,6 +143,10 @@ const useEffectStore = create((set, get) => ({
             visualEffect: effectId
           }
         });
+
+        // AJOUT: Synchroniser avec le gameStore
+        const { default: useGameStore } = await import('./gameStore');
+        useGameStore.getState().setCurrentEffect(effectId);
 
         return { success: true };
       } else {

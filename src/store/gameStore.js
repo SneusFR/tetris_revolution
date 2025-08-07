@@ -28,6 +28,8 @@ const useGameStore = create(
       isGameOver: false,
       gameSpeed: 1000,
       levelChanged: false,
+      gameStartTime: null,
+      totalPlayTime: 0,
       
       // Combo system
       currentCombo: 0,
@@ -143,14 +145,22 @@ const useGameStore = create(
       
       setPaused: (paused) => set({ isPaused: paused }),
       
-      setGameOver: (gameOver) => set((state) => ({
-        isGameOver: gameOver,
-        statistics: gameOver ? {
-          ...state.statistics,
-          totalGamesPlayed: state.statistics.totalGamesPlayed + 1,
-          totalScore: state.statistics.totalScore + state.score,
-        } : state.statistics,
-      })),
+      setGameOver: (gameOver) => set((state) => {
+        if (gameOver && state.gameStartTime) {
+          const playTime = Math.floor((Date.now() - state.gameStartTime) / 1000);
+          return {
+            isGameOver: gameOver,
+            totalPlayTime: playTime,
+            statistics: {
+              ...state.statistics,
+              totalGamesPlayed: state.statistics.totalGamesPlayed + 1,
+              totalScore: state.statistics.totalScore + state.score,
+              totalPlayTime: state.statistics.totalPlayTime + playTime,
+            },
+          };
+        }
+        return { isGameOver: gameOver };
+      }),
       
       resetGame: () => set({
         score: 0,
@@ -162,6 +172,8 @@ const useGameStore = create(
         currentCombo: 0,
         maxCombo: 0,
         levelChanged: false,
+        gameStartTime: Date.now(),
+        totalPlayTime: 0,
       }),
       
       // Combo actions

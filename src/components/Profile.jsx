@@ -186,52 +186,17 @@ const Profile = ({ onBack }) => {
         </motion.div>
 
         {/* Informations utilisateur */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="ml-8 mb-8 pt-16"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
-                {user.username}
-              </h1>
-              
-              {isEditing ? (
-                <div className="flex items-center gap-4 mt-2">
-                  <input
-                    type="text"
-                    value={editData.title}
-                    onChange={(e) => setEditData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Votre titre personnalisé"
-                    className="px-3 py-1 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:border-neon-blue text-sm"
-                    maxLength={50}
-                  />
-                  <select
-                    value={editData.country}
-                    onChange={(e) => setEditData(prev => ({ ...prev, country: e.target.value }))}
-                    className="px-3 py-1 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:border-neon-blue text-sm"
-                  >
-                    {countries.map(country => (
-                      <option key={country.code} value={country.code} className="bg-gray-800">
-                        {country.flag} {country.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="flex items-center gap-4 mt-2">
-                  <p className="text-gray-400">
-                    {user.profile?.title || 'Joueur Tetris'}
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <span>{getCountryInfo(user.profile?.country).flag}</span>
-                    <span>{getCountryInfo(user.profile?.country).name}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="ml-8 mb-8 pt-16">
+          {/* Nom d'utilisateur et bouton d'édition */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center justify-between mb-6"
+          >
+            <h1 className="text-4xl font-black bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
+              {user.username}
+            </h1>
 
             {/* Boutons d'édition */}
             <div className="flex items-center gap-2">
@@ -263,42 +228,139 @@ const Profile = ({ onBack }) => {
                 </button>
               )}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Niveau et expérience */}
-          <div className="flex items-center gap-6 mb-4">
-            <div className="flex items-center gap-2">
-              <FaStar className="text-neon-yellow" />
-              <span className="text-2xl font-bold">Niveau {user.profile?.level || 1}</span>
-            </div>
-            <div className="flex-1 max-w-xs">
-              <div className="flex justify-between text-sm text-gray-400 mb-1">
-                <span>Expérience</span>
-                <span>{(user.profile?.experience || 0).toLocaleString()} XP</span>
+          {/* Glass Panel avec informations de profil */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass-effect rounded-xl p-6 mb-6 backdrop-blur-xl bg-white/5 border border-white/10"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Rang/Niveau */}
+              <div className="flex items-center gap-3 min-h-[80px]">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 border border-yellow-500/30 flex-shrink-0">
+                  <FaStar className="text-2xl text-neon-yellow" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Rang</p>
+                  <p className="text-xl font-bold text-white mb-1">Débutant</p>
+                  <p className="text-sm text-neon-yellow">Niveau {user.profile?.level || 1}</p>
+                </div>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
+
+              {/* Pays */}
+              <div className="flex items-center gap-3 min-h-[80px]">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-600/20 border border-blue-500/30 flex-shrink-0">
+                  <FaFlag className="text-2xl text-neon-blue" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Pays</p>
+                  {isEditing ? (
+                    <select
+                      value={editData.country}
+                      onChange={(e) => setEditData(prev => ({ ...prev, country: e.target.value }))}
+                      className="px-2 py-1 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:border-neon-blue text-sm w-full"
+                    >
+                      {countries.map(country => (
+                        <option key={country.code} value={country.code} className="bg-gray-800">
+                          {country.flag} {country.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{getCountryInfo(user.profile?.country).flag}</span>
+                      <span className="text-lg font-semibold text-white">{getCountryInfo(user.profile?.country).name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Statut Membre */}
+              <div className="flex items-center gap-3 min-h-[80px]">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-green-400/20 to-green-600/20 border border-green-500/30 flex-shrink-0">
+                  <FaUser className="text-2xl text-neon-green" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Statut</p>
+                  <p className="text-lg font-semibold text-white mb-1">Membre</p>
+                  <p className="text-sm text-neon-green">Depuis le {formatDate(user.createdAt)}</p>
+                </div>
+              </div>
+
+              {/* Titre personnalisé */}
+              <div className="flex items-center gap-3 min-h-[80px]">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400/20 to-purple-600/20 border border-purple-500/30 flex-shrink-0">
+                  <FaMedal className="text-2xl text-neon-purple" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Titre</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.title}
+                      onChange={(e) => setEditData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Votre titre personnalisé"
+                      className="px-2 py-1 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:border-neon-purple text-sm w-full"
+                      maxLength={50}
+                    />
+                  ) : (
+                    <p className="text-lg font-semibold text-white">
+                      {user.profile?.title || 'Joueur Tetris'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Expérience et dernière connexion */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            {/* Barre d'expérience */}
+            <div className="glass-effect rounded-xl p-6 backdrop-blur-xl bg-white/5 border border-white/10">
+              <div className="flex justify-between text-sm text-gray-400 mb-3">
+                <span className="flex items-center gap-2">
+                  <FaChartLine className="text-neon-blue" />
+                  Expérience
+                </span>
+                <span className="font-semibold">{(user.profile?.experience || 0).toLocaleString()} XP</span>
+              </div>
+              <div className="w-full bg-gray-700/50 rounded-full h-3 overflow-hidden mb-2">
                 <div 
-                  className="bg-gradient-to-r from-neon-blue to-neon-purple h-2 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink h-3 rounded-full transition-all duration-500 relative"
                   style={{ 
                     width: `${Math.min(100, ((user.profile?.experience || 0) % 1000) / 10)}%` 
                   }}
-                />
+                >
+                  <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                {1000 - ((user.profile?.experience || 0) % 1000)} XP pour le niveau suivant
+              </p>
+            </div>
+
+            {/* Dernière connexion */}
+            <div className="glass-effect rounded-xl p-6 backdrop-blur-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 h-full">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-orange-400/20 to-orange-600/20 border border-orange-500/30 flex-shrink-0">
+                  <FaGamepad className="text-2xl text-neon-orange" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Dernière connexion</p>
+                  <p className="text-lg font-semibold text-white">{formatDate(user.lastLogin)}</p>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Informations de compte */}
-          <div className="flex items-center gap-6 text-sm text-gray-400">
-            <div className="flex items-center gap-2">
-              <FaClock />
-              <span>Membre depuis le {formatDate(user.createdAt)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FaGamepad />
-              <span>Dernière connexion: {formatDate(user.lastLogin)}</span>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

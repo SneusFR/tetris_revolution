@@ -3,14 +3,31 @@ import { motion } from 'framer-motion';
 import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import useGameStore from '../store/gameStore';
 import useAuthStore from '../store/authStore';
+import useEffectStore from '../store/effectStore';
 
 const MainMenu = ({ onNavigate }) => {
   const { highScore, credits, statistics } = useGameStore();
   const { user, isAuthenticated, logout, checkAuth } = useAuthStore();
+  const { fetchEffects } = useEffectStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Synchroniser les effets quand l'utilisateur est authentifié
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Charger les effets depuis le serveur pour synchroniser avec le gameStore
+      // Ajouter un délai pour éviter les appels trop fréquents
+      const timeoutId = setTimeout(() => {
+        fetchEffects().catch(error => {
+          console.warn('Erreur lors du chargement des effets dans MainMenu:', error);
+        });
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isAuthenticated, fetchEffects]);
 
   const handleLogout = async () => {
     await logout();

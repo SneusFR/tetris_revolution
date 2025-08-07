@@ -49,9 +49,21 @@ const Shop = ({ onBack }) => {
 
   // Charger les données au montage du composant
   React.useEffect(() => {
-    fetchBanners();
-    fetchThemes();
-    fetchEffects();
+    // Ajouter des délais pour éviter les appels simultanés
+    const loadData = async () => {
+      try {
+        await fetchBanners();
+        // Petit délai entre chaque appel
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await fetchThemes();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        await fetchEffects();
+      } catch (error) {
+        console.warn('Erreur lors du chargement des données de la boutique:', error);
+      }
+    };
+    
+    loadData();
   }, [fetchBanners, fetchThemes, fetchEffects]);
 
   const handlePurchaseTheme = async (themeId) => {

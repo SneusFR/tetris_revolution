@@ -40,6 +40,14 @@ const useThemeStore = create((set, get) => ({
             }
           });
         }
+
+        // AJOUT: Synchroniser le thème actuel avec le gameStore
+        try {
+          const { default: useGameStore } = await import('./gameStore');
+          useGameStore.getState().setCurrentTheme(currentThemeId);
+        } catch (error) {
+          console.warn('Impossible de synchroniser le thème avec le gameStore:', error);
+        }
         return { success: true, data: response.data };
       } else {
         set({
@@ -88,20 +96,19 @@ const useThemeStore = create((set, get) => ({
           });
         }
 
-        // Recharger les thèmes depuis le serveur
+        // Recharger les thèmes depuis le serveur SEULEMENT en cas de succès
         await get().fetchThemes();
         
         set({ isLoading: false });
         return { success: true, message: response.message };
       } else {
-        // CORRECTION: Recharger les données même en cas d'échec pour synchroniser
-        await get().fetchThemes();
+        // En cas d'échec, ne pas recharger pour éviter les boucles infinies
         set({ isLoading: false, error: response.message });
         return { success: false, error: response.message };
       }
     } catch (error) {
-      // CORRECTION: Recharger les données même en cas d'erreur pour synchroniser
-      await get().fetchThemes();
+      // En cas d'erreur, ne pas recharger pour éviter les boucles infinies
+      console.error('Erreur lors de l\'achat de thème:', error);
       set({ isLoading: false, error: error.message });
       return { success: false, error: error.message };
     }
@@ -136,6 +143,10 @@ const useThemeStore = create((set, get) => ({
             theme: themeId
           }
         });
+
+        // AJOUT: Synchroniser avec le gameStore
+        const { default: useGameStore } = await import('./gameStore');
+        useGameStore.getState().setCurrentTheme(themeId);
 
         return { success: true };
       } else {
