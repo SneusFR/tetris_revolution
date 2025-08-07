@@ -7,6 +7,7 @@ import Shop from './components/Shop';
 import Statistics from './components/Statistics';
 import Auth from './components/Auth';
 import Profile from './components/Profile';
+import Leaderboard from './components/Leaderboard';
 import NetworkStatus from './components/NetworkStatus';
 import soundManager from './utils/soundManager';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -141,6 +142,18 @@ function App() {
             exit="exit"
           >
             <Profile onBack={handleBack} />
+          </motion.div>
+        )}
+
+        {currentView === 'leaderboard' && (
+          <motion.div
+            key="leaderboard"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Leaderboard onBack={handleBack} />
           </motion.div>
         )}
       </AnimatePresence>

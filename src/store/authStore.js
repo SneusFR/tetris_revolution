@@ -71,6 +71,12 @@ const useAuthStore = create((set, get) => ({
             isLoading: false,
             error: null,
           });
+          
+          // Réinitialiser les données locales du gameStore pour éviter la persistance entre comptes
+          const { resetUserData } = await import('../store/gameStore');
+          if (resetUserData) {
+            resetUserData();
+          }
         }
       },
 

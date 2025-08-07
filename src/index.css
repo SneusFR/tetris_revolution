@@ -3,6 +3,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
+  :root {
+    --neon-blue: #00d4ff;
+    --neon-purple: #b347d9;
+    --neon-pink: #ff006e;
+    --neon-green: #00ff88;
+    --neon-yellow: #ffff00;
+  }
+
   body {
     @apply bg-gray-900 text-white;
     background-image:
@@ -35,6 +43,61 @@
 
   .glass-effect {
     @apply bg-white/10 backdrop-blur-lg border border-white/20;
+  }
+
+  /* Couleurs neon personnalisées */
+  .text-neon-blue { color: var(--neon-blue); }
+  .text-neon-purple { color: var(--neon-purple); }
+  .text-neon-pink { color: var(--neon-pink); }
+  .text-neon-green { color: var(--neon-green); }
+  .text-neon-yellow { color: var(--neon-yellow); }
+
+  .bg-neon-blue { background-color: var(--neon-blue); }
+  .bg-neon-purple { background-color: var(--neon-purple); }
+  .bg-neon-pink { background-color: var(--neon-pink); }
+  .bg-neon-green { background-color: var(--neon-green); }
+  .bg-neon-yellow { background-color: var(--neon-yellow); }
+
+  .border-neon-blue { border-color: var(--neon-blue); }
+  .border-neon-purple { border-color: var(--neon-purple); }
+  .border-neon-pink { border-color: var(--neon-pink); }
+  .border-neon-green { border-color: var(--neon-green); }
+  .border-neon-yellow { border-color: var(--neon-yellow); }
+
+  /* Styles améliorés pour les boutons d'authentification */
+  .auth-toggle-button {
+    @apply inline-block px-4 py-2 rounded-lg font-semibold transition-all duration-300;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(179, 71, 217, 0.1));
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: var(--neon-blue);
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  }
+
+  .auth-toggle-button:hover {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(179, 71, 217, 0.2));
+    border-color: rgba(179, 71, 217, 0.6);
+    color: var(--neon-purple);
+    text-shadow: 0 0 15px rgba(179, 71, 217, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(179, 71, 217, 0.3);
+  }
+
+  .auth-submit-button {
+    @apply w-full py-3 text-white font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-2;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+  }
+
+  .auth-submit-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4), 0 0 20px rgba(179, 71, 217, 0.3);
+  }
+
+  .auth-submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.1);
   }
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
+import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignInAlt, FaSignOutAlt, FaMedal } from 'react-icons/fa';
 import useGameStore from '../store/gameStore';
 import useAuthStore from '../store/authStore';
 import useEffectStore from '../store/effectStore';
@@ -40,6 +40,13 @@ const MainMenu = ({ onNavigate }) => {
       description: 'Commencer une nouvelle partie',
       color: 'from-green-400 to-green-600',
       action: () => onNavigate('game')
+    },
+    {
+      icon: <FaMedal className="text-2xl" />,
+      title: 'Leaderboard',
+      description: 'Classement des meilleurs joueurs',
+      color: 'from-orange-400 to-red-600',
+      action: () => onNavigate('leaderboard')
     },
     {
       icon: <FaCog className="text-2xl" />,
@@ -150,20 +157,35 @@ const MainMenu = ({ onNavigate }) => {
       >
         <div className="glass-effect px-6 py-3 rounded-lg">
           <p className="text-sm text-gray-400">Meilleur Score</p>
-          <p className="text-2xl font-bold text-neon-blue">{highScore.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-neon-blue">
+            {isAuthenticated 
+              ? (user?.gameStats?.bestScore || 0).toLocaleString()
+              : highScore.toLocaleString()
+            }
+          </p>
         </div>
         <div className="glass-effect px-6 py-3 rounded-lg">
           <p className="text-sm text-gray-400">Crédits</p>
-          <p className="text-2xl font-bold text-neon-yellow">{(user?.profile?.credits || 0).toLocaleString()} ¢</p>
+          <p className="text-2xl font-bold text-neon-yellow">
+            {isAuthenticated 
+              ? (user?.profile?.credits || 0).toLocaleString()
+              : credits.toLocaleString()
+            } ¢
+          </p>
         </div>
         <div className="glass-effect px-6 py-3 rounded-lg">
           <p className="text-sm text-gray-400">Parties Jouées</p>
-          <p className="text-2xl font-bold text-neon-green">{statistics.totalGamesPlayed}</p>
+          <p className="text-2xl font-bold text-neon-green">
+            {isAuthenticated 
+              ? (user?.gameStats?.totalGames || 0)
+              : statistics.totalGamesPlayed
+            }
+          </p>
         </div>
       </motion.div>
 
       {/* Menu Grid */}
-      <div className="grid grid-cols-2 gap-6 max-w-4xl w-full">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl w-full">
         {menuItems.map((item, index) => (
           <motion.button
             key={item.title}

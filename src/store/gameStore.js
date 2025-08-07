@@ -242,6 +242,20 @@ const useGameStore = create(
       addCredits: (amount) => set((state) => ({
         credits: state.credits + amount,
       })),
+
+      // Réinitialiser les données utilisateur lors de la déconnexion
+      resetUserData: () => set({
+        highScore: 0,
+        credits: 1000,
+        statistics: {
+          totalGamesPlayed: 0,
+          totalLinesCleared: 0,
+          totalScore: 0,
+          totalPlayTime: 0,
+          bestCombo: 0,
+          perfectClears: 0,
+        },
+      }),
     }),
     {
       name: 'tetris-game-storage',
@@ -258,5 +272,11 @@ const useGameStore = create(
     }
   )
 );
+
+// Exporter la fonction resetUserData pour l'utiliser dans authStore
+export const resetUserData = () => {
+  const store = useGameStore.getState();
+  store.resetUserData();
+};
 
 export default useGameStore;

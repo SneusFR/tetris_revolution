@@ -70,6 +70,7 @@ const Auth = ({ onBack }) => {
 
   const countries = [
     { code: 'FR', name: 'France' },
+    { code: 'BE', name: 'Belgique' },
     { code: 'US', name: 'États-Unis' },
     { code: 'GB', name: 'Royaume-Uni' },
     { code: 'DE', name: 'Allemagne' },
@@ -297,7 +298,7 @@ const Auth = ({ onBack }) => {
               transition={{ delay: isLogin ? 0.5 : 0.8 }}
               type="submit"
               disabled={isLoading || (!isLogin && formData.password !== formData.confirmPassword)}
-              className="w-full py-3 bg-gradient-to-r from-neon-blue to-neon-purple text-white font-bold rounded-lg hover:shadow-lg hover:shadow-neon-blue/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="auth-submit-button"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -319,7 +320,7 @@ const Auth = ({ onBack }) => {
             </p>
             <button
               onClick={toggleMode}
-              className="text-neon-blue hover:text-neon-purple transition-colors font-semibold mt-1"
+              className="auth-toggle-button"
             >
               {isLogin ? 'Créer un compte' : 'Se connecter'}
             </button>
