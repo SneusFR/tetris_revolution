@@ -47,8 +47,8 @@ const useGameStore = create(
         gridLines: true,
         theme: 'neon',
         // Professional input settings (DAS/ARR)
-        das: 100,  // Delayed Auto Shift in milliseconds
-        arr: 0,    // Auto Repeat Rate in milliseconds (0 = instant)
+        das: 500,  // Delayed Auto Shift in milliseconds (much slower)
+        arr: 150,  // Auto Repeat Rate in milliseconds (much slower than instant)
         sdf: 1,    // Soft Drop Factor
         // Key bindings
         keyBindings: {

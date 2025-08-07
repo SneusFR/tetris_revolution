@@ -18,8 +18,8 @@ class InputManager {
 
     // DAS/ARR settings (in milliseconds)
     this.settings = {
-      das: 100,  // Delayed Auto Shift - delay before auto-repeat starts
-      arr: 0,    // Auto Repeat Rate - delay between repeats (0 = instant)
+      das: 500,  // Delayed Auto Shift - delay before auto-repeat starts (500ms delay - much slower)
+      arr: 150,  // Auto Repeat Rate - delay between repeats (150ms = ~6.7 moves/second - much slower)
       sdf: 1,    // Soft Drop Factor - multiplier for down key
       keyBindings: {
         moveLeft: 'ArrowLeft',
@@ -34,10 +34,13 @@ class InputManager {
 
     // Timing state
     this.timers = {
-      left: { dasStart: 0, lastRepeat: 0, active: false },
-      right: { dasStart: 0, lastRepeat: 0, active: false },
-      down: { dasStart: 0, lastRepeat: 0, active: false }
+      left: { dasStart: 0, lastRepeat: 0, active: false, lastPress: 0 },
+      right: { dasStart: 0, lastRepeat: 0, active: false, lastPress: 0 },
+      down: { dasStart: 0, lastRepeat: 0, active: false, lastPress: 0 }
     };
+
+    // Debounce delay to prevent accidental double presses (in milliseconds)
+    this.debounceDelay = 100; // 100ms to prevent accidental double presses
 
     // Callbacks
     this.callbacks = {
@@ -103,10 +106,12 @@ class InputManager {
 
     // Check for move left
     if (key === bindings.moveLeft.toLowerCase()) {
-      if (!this.keys.left) {
+      if (!this.keys.left && (now - this.timers.left.lastPress) > this.debounceDelay) {
         this.keys.left = true;
         this.timers.left.dasStart = now;
-        this.timers.left.lastRepeat = now;
+        this.timers.left.lastPress = now;
+        // Set lastRepeat to future to prevent immediate repeat in update loop
+        this.timers.left.lastRepeat = now + this.settings.das;
         this.timers.left.active = true;
         // Immediate first move
         if (this.callbacks.moveLeft) {
@@ -117,10 +122,12 @@ class InputManager {
     }
     // Check for move right
     else if (key === bindings.moveRight.toLowerCase()) {
-      if (!this.keys.right) {
+      if (!this.keys.right && (now - this.timers.right.lastPress) > this.debounceDelay) {
         this.keys.right = true;
         this.timers.right.dasStart = now;
-        this.timers.right.lastRepeat = now;
+        this.timers.right.lastPress = now;
+        // Set lastRepeat to future to prevent immediate repeat in update loop
+        this.timers.right.lastRepeat = now + this.settings.das;
         this.timers.right.active = true;
         // Immediate first move
         if (this.callbacks.moveRight) {
@@ -131,10 +138,13 @@ class InputManager {
     }
     // Check for soft drop
     else if (key === bindings.softDrop.toLowerCase()) {
-      if (!this.keys.down) {
+      if (!this.keys.down && (now - this.timers.down.lastPress) > this.debounceDelay) {
         this.keys.down = true;
         this.timers.down.dasStart = now;
-        this.timers.down.lastRepeat = now;
+        this.timers.down.lastPress = now;
+        // Set lastRepeat to future to prevent immediate repeat in update loop
+        const softDropDAS = Math.max(this.settings.das / 2, 16);
+        this.timers.down.lastRepeat = now + softDropDAS;
         this.timers.down.active = true;
         // Immediate first move
         if (this.callbacks.moveDown) {
