@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useGameStore from '../store/gameStore';
+import useAuthStore from '../store/authStore';
 import soundManager from '../utils/soundManager';
 import inputManager from '../utils/inputManager';
 import VisualEffects from './VisualEffects';
@@ -68,6 +69,8 @@ const TetrisGame = () => {
     resetCombo
   } = useGameStore();
 
+  const { isAuthenticated, saveGameResult } = useAuthStore();
+
   const theme = themes.find(t => t.id === currentTheme);
   const colors = theme ? theme.colors : ['#00ffff', '#ff00ff', '#00ff00', '#ffff00', '#ff8800', '#ff0044', '#8800ff'];
   
@@ -102,6 +105,22 @@ const TetrisGame = () => {
       }
     };
   }, []);
+
+  // Save game result when game is over
+  useEffect(() => {
+    if (gameOver && isAuthenticated && score > 0) {
+      const gameData = {
+        score,
+        level,
+        linesCleared: lines,
+        timePlayed: Math.floor(Date.now() / 1000), // Approximation du temps de jeu
+        gameMode: 'classic',
+        difficulty: 'normal'
+      };
+      
+      saveGameResult(gameData);
+    }
+  }, [gameOver, isAuthenticated, score, level, lines, saveGameResult]);
 
   // Optimized game loop with requestAnimationFrame limited to 60 FPS
   useEffect(() => {

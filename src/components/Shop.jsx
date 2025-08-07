@@ -1,55 +1,118 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaArrowLeft, FaPalette, FaStar, FaCoins, FaCheck, FaLock } from 'react-icons/fa';
-import useGameStore from '../store/gameStore';
+import { FaArrowLeft, FaPalette, FaStar, FaCoins, FaCheck, FaLock, FaImage } from 'react-icons/fa';
+import useAuthStore from '../store/authStore';
+import useBannerStore from '../store/bannerStore';
+import useThemeStore from '../store/themeStore';
+import useEffectStore from '../store/effectStore';
+import BannerDisplay from './BannerDisplay';
 
 const Shop = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('themes');
+
+  const { user } = useAuthStore();
+  const credits = user?.profile?.credits || 0;
+
+  // Stores pour chaque type d'item
   const {
-    credits,
+    banners,
+    currentBanner,
+    isLoading: bannersLoading,
+    error: bannersError,
+    fetchBanners,
+    purchaseBanner,
+    selectBanner,
+    clearError: clearBannerError
+  } = useBannerStore();
+
+  const {
     themes,
-    effects,
     currentTheme,
-    currentEffect,
+    isLoading: themesLoading,
+    error: themesError,
+    fetchThemes,
     purchaseTheme,
+    selectTheme,
+    clearError: clearThemeError
+  } = useThemeStore();
+
+  const {
+    effects,
+    currentEffect,
+    isLoading: effectsLoading,
+    error: effectsError,
+    fetchEffects,
     purchaseEffect,
-    setCurrentTheme,
-    setCurrentEffect,
-    _migrate
-  } = useGameStore();
+    selectEffect,
+    clearError: clearEffectError
+  } = useEffectStore();
 
-  // Run migration on component mount to ensure new themes are available
+  // Charger les données au montage du composant
   React.useEffect(() => {
-    if (_migrate) {
-      _migrate();
+    fetchBanners();
+    fetchThemes();
+    fetchEffects();
+  }, [fetchBanners, fetchThemes, fetchEffects]);
+
+  const handlePurchaseTheme = async (themeId) => {
+    const result = await purchaseTheme(themeId);
+    if (!result.success) {
+      console.error('Erreur lors de l\'achat du thème:', result.error);
     }
-  }, [_migrate]);
-
-  const handlePurchaseTheme = (themeId) => {
-    purchaseTheme(themeId);
   };
 
-  const handlePurchaseEffect = (effectId) => {
-    purchaseEffect(effectId);
+  const handlePurchaseEffect = async (effectId) => {
+    const result = await purchaseEffect(effectId);
+    if (!result.success) {
+      console.error('Erreur lors de l\'achat de l\'effet:', result.error);
+    }
   };
 
-  const handleSelectTheme = (themeId) => {
+  const handleSelectTheme = async (themeId) => {
     const theme = themes.find(t => t.id === themeId);
-    if (theme && theme.owned) {
-      setCurrentTheme(themeId);
+    if (theme && theme.isOwned) {
+      const result = await selectTheme(themeId);
+      if (!result.success) {
+        console.error('Erreur lors de la sélection du thème:', result.error);
+      }
     }
   };
 
-  const handleSelectEffect = (effectId) => {
+  const handleSelectEffect = async (effectId) => {
     const effect = effects.find(e => e.id === effectId);
-    if (effect && effect.owned) {
-      setCurrentEffect(effectId);
+    if (effect && effect.isOwned) {
+      const result = await selectEffect(effectId);
+      if (!result.success) {
+        console.error('Erreur lors de la sélection de l\'effet:', result.error);
+      }
+    }
+  };
+
+  const handlePurchaseBanner = (bannerId) => {
+    purchaseBanner(bannerId);
+  };
+
+  const handleSelectBanner = async (bannerId) => {
+    const banner = banners.find(b => b.id === bannerId);
+    if (banner && banner.isOwned) {
+      const result = await selectBanner(bannerId);
+      if (!result.success) {
+        console.error('Erreur lors de la sélection de la bannière:', result.error);
+      }
+    }
+  };
+
+  const handlePurchaseBannerWithFeedback = async (bannerId) => {
+    const result = await purchaseBanner(bannerId);
+    if (!result.success) {
+      console.error('Erreur lors de l\'achat de la bannière:', result.error);
     }
   };
 
   const tabs = [
     { id: 'themes', label: 'Thèmes', icon: <FaPalette /> },
-    { id: 'effects', label: 'Effets', icon: <FaStar /> }
+    { id: 'effects', label: 'Effets', icon: <FaStar /> },
+    { id: 'banners', label: 'Bannières', icon: <FaImage /> }
   ];
 
   return (
@@ -120,13 +183,13 @@ const Shop = ({ onBack }) => {
                 transition={{ delay: index * 0.1 }}
                 className={`
                   card p-6 relative overflow-hidden cursor-pointer transition-all
-                  ${theme.owned ? 'hover:shadow-2xl' : 'opacity-90'}
-                  ${currentTheme === theme.id ? 'ring-4 ring-blue-500' : ''}
+                  ${theme.isOwned ? 'hover:shadow-2xl' : 'opacity-90'}
+                  ${currentTheme?.id === theme.id ? 'ring-4 ring-blue-500' : ''}
                 `}
-                onClick={() => theme.owned && handleSelectTheme(theme.id)}
+                onClick={() => theme.isOwned && handleSelectTheme(theme.id)}
               >
                 {/* Selected Badge */}
-                {currentTheme === theme.id && (
+                {currentTheme?.id === theme.id && (
                   <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                     ACTIF
                   </div>
@@ -151,7 +214,7 @@ const Shop = ({ onBack }) => {
 
                 {/* Price / Status */}
                 <div className="flex items-center justify-between">
-                  {theme.owned ? (
+                  {theme.isOwned ? (
                     <div className="flex items-center gap-2 text-green-400">
                       <FaCheck />
                       <span className="font-semibold">Possédé</span>
@@ -203,13 +266,13 @@ const Shop = ({ onBack }) => {
                 transition={{ delay: index * 0.1 }}
                 className={`
                   card p-6 relative overflow-hidden cursor-pointer transition-all
-                  ${effect.owned ? 'hover:shadow-2xl' : 'opacity-90'}
-                  ${currentEffect === effect.id ? 'ring-4 ring-purple-500' : ''}
+                  ${effect.isOwned ? 'hover:shadow-2xl' : 'opacity-90'}
+                  ${currentEffect?.id === effect.id ? 'ring-4 ring-purple-500' : ''}
                 `}
-                onClick={() => effect.owned && handleSelectEffect(effect.id)}
+                onClick={() => effect.isOwned && handleSelectEffect(effect.id)}
               >
                 {/* Selected Badge */}
-                {currentEffect === effect.id && (
+                {currentEffect?.id === effect.id && (
                   <div className="absolute top-2 right-2 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                     ACTIF
                   </div>
@@ -245,7 +308,7 @@ const Shop = ({ onBack }) => {
 
                 {/* Price / Status */}
                 <div className="flex items-center justify-between">
-                  {effect.owned ? (
+                  {effect.isOwned ? (
                     <div className="flex items-center gap-2 text-green-400">
                       <FaCheck />
                       <span className="font-semibold">Possédé</span>
@@ -272,6 +335,92 @@ const Shop = ({ onBack }) => {
                         whileTap={credits >= effect.price ? { scale: 0.95 } : {}}
                       >
                         {credits >= effect.price ? 'Acheter' : <FaLock />}
+                      </motion.button>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
+        {activeTab === 'banners' && (
+          <motion.div
+            key="banners"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="grid grid-cols-2 gap-6"
+          >
+            {banners.map((banner, index) => (
+              <motion.div
+                key={banner.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={`
+                  card p-6 relative overflow-hidden cursor-pointer transition-all
+                  ${banner.isOwned ? 'hover:shadow-2xl' : 'opacity-90'}
+                  ${currentBanner?.id === banner.id ? 'ring-4 ring-orange-500' : ''}
+                `}
+                onClick={() => banner.isOwned && handleSelectBanner(banner.id)}
+              >
+                {/* Selected Badge */}
+                {currentBanner?.id === banner.id && (
+                  <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold z-10">
+                    ACTIF
+                  </div>
+                )}
+
+                {/* Banner Preview */}
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold mb-3">{banner.name}</h3>
+                  <div className="h-24 rounded-lg overflow-hidden border border-white/20">
+                    <BannerDisplay banner={banner} className="w-full h-full" />
+                  </div>
+                  
+                  {/* Banner Description */}
+                  <p className="text-gray-400 text-sm mt-2">
+                    {banner.type === 'gradient' && 'Bannière avec dégradé simple'}
+                    {banner.type === 'tetris' && 'Pièces de Tetris qui tombent en animation'}
+                    {banner.type === 'grid' && 'Grille néon avec effet de pulsation'}
+                    {banner.type === 'particles' && 'Particules animées en mouvement'}
+                    {banner.type === 'wave' && 'Vagues colorées en mouvement'}
+                    {banner.type === 'matrix' && 'Effet Matrix avec caractères qui tombent'}
+                    {banner.type === 'fire' && 'Flammes animées avec effet de feu'}
+                    {banner.type === 'circuit' && 'Circuits électroniques avec pulsations'}
+                  </p>
+                </div>
+
+                {/* Price / Status */}
+                <div className="flex items-center justify-between">
+                  {banner.isOwned ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <FaCheck />
+                      <span className="font-semibold">Possédé</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <FaCoins className="text-yellow-400" />
+                        <span className="text-xl font-bold">{banner.price}</span>
+                      </div>
+                      <motion.button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePurchaseBannerWithFeedback(banner.id);
+                        }}
+                        disabled={credits < banner.price || bannersLoading}
+                        className={`
+                          px-4 py-2 rounded-lg font-semibold transition-all
+                          ${credits >= banner.price && !bannersLoading
+                            ? 'bg-gradient-to-r from-green-400 to-green-600 text-white hover:shadow-lg'
+                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'}
+                        `}
+                        whileHover={credits >= banner.price && !bannersLoading ? { scale: 1.05 } : {}}
+                        whileTap={credits >= banner.price && !bannersLoading ? { scale: 0.95 } : {}}
+                      >
+                        {bannersLoading ? '...' : credits >= banner.price ? 'Acheter' : <FaLock />}
                       </motion.button>
                     </>
                   )}

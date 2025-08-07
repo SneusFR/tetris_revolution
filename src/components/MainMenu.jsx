@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle } from 'react-icons/fa';
+import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignInAlt, FaSignOutAlt } from 'react-icons/fa';
 import useGameStore from '../store/gameStore';
+import useAuthStore from '../store/authStore';
 
 const MainMenu = ({ onNavigate }) => {
   const { highScore, credits, statistics } = useGameStore();
+  const { user, isAuthenticated, logout, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   const menuItems = [
     {
@@ -39,6 +49,55 @@ const MainMenu = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
+      {/* Boutons d'authentification en haut à droite */}
+      <div className="absolute top-4 right-4 flex items-center gap-3">
+        {isAuthenticated ? (
+          <>
+            {/* Profil utilisateur */}
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={() => onNavigate('profile')}
+              className="flex items-center gap-2 glass-effect px-4 py-2 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              {user?.profile?.avatar ? (
+                <img
+                  src={`http://localhost:5000${user.profile.avatar}`}
+                  alt="Avatar"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-blue to-neon-purple flex items-center justify-center">
+                  <FaUser className="text-sm text-white" />
+                </div>
+              )}
+              <span className="font-medium">{user?.username}</span>
+            </motion.button>
+            
+            {/* Bouton déconnexion */}
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              onClick={handleLogout}
+              className="p-2 glass-effect rounded-lg hover:bg-red-500/20 transition-colors text-red-400 hover:text-red-300"
+              title="Se déconnecter"
+            >
+              <FaSignOutAlt className="text-lg" />
+            </motion.button>
+          </>
+        ) : (
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => onNavigate('auth')}
+            className="flex items-center gap-2 glass-effect px-4 py-2 rounded-lg hover:bg-white/20 transition-colors"
+          >
+            <FaSignInAlt className="text-lg" />
+            <span>Se connecter</span>
+          </motion.button>
+        )}
+      </div>
       {/* Logo */}
       <motion.div
         initial={{ y: -30, opacity: 0 }}
@@ -78,7 +137,7 @@ const MainMenu = ({ onNavigate }) => {
         </div>
         <div className="glass-effect px-6 py-3 rounded-lg">
           <p className="text-sm text-gray-400">Crédits</p>
-          <p className="text-2xl font-bold text-neon-yellow">{credits.toLocaleString()} ¢</p>
+          <p className="text-2xl font-bold text-neon-yellow">{(user?.profile?.credits || 0).toLocaleString()} ¢</p>
         </div>
         <div className="glass-effect px-6 py-3 rounded-lg">
           <p className="text-sm text-gray-400">Parties Jouées</p>

@@ -78,7 +78,7 @@ const useGameStore = create(
         { id: 'electric', name: 'Électrique', price: 1500, owned: false },
         { id: 'matrix', name: 'Matrix', price: 2000, owned: false },
       ],
-      
+
       currentTheme: 'neon',
       currentEffect: 'none',
       
@@ -212,6 +212,7 @@ const useGameStore = create(
           ),
         };
       }),
+
       
       setCurrentTheme: (themeId) => set((state) => {
         const theme = state.themes.find(t => t.id === themeId);
@@ -224,6 +225,7 @@ const useGameStore = create(
         if (!effect || !effect.owned) return state;
         return { currentEffect: effectId };
       }),
+
       
       addCredits: (amount) => set((state) => ({
         credits: state.credits + amount,

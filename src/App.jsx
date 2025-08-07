@@ -5,6 +5,8 @@ import TetrisGame from './components/TetrisGame';
 import Settings from './components/Settings';
 import Shop from './components/Shop';
 import Statistics from './components/Statistics';
+import Auth from './components/Auth';
+import Profile from './components/Profile';
 import soundManager from './utils/soundManager';
 import { FaArrowLeft } from 'react-icons/fa';
 
@@ -114,6 +116,30 @@ function App() {
             exit="exit"
           >
             <Statistics onBack={handleBack} />
+          </motion.div>
+        )}
+
+        {currentView === 'auth' && (
+          <motion.div
+            key="auth"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Auth onBack={handleBack} />
+          </motion.div>
+        )}
+
+        {currentView === 'profile' && (
+          <motion.div
+            key="profile"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <Profile onBack={handleBack} />
           </motion.div>
         )}
       </AnimatePresence>
