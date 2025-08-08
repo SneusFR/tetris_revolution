@@ -75,9 +75,11 @@ const TetrisGame = () => {
 
   const { isAuthenticated, user, saveGameResult } = useAuthStore();
   const { fetchEffects, currentEffect: serverEffect } = useEffectStore();
-  const { fetchThemes, currentTheme: serverTheme } = useThemeStore();
+  const { fetchThemes, currentTheme: serverTheme, themes: serverThemes } = useThemeStore();
 
-  const theme = themes.find(t => t.id === currentTheme);
+  // Utiliser les thèmes du serveur si disponibles, sinon utiliser ceux du gameStore local
+  const availableThemes = serverThemes && serverThemes.length > 0 ? serverThemes : themes;
+  const theme = availableThemes.find(t => t.id === currentTheme);
   const colors = theme ? theme.colors : ['#00ffff', '#ff00ff', '#00ff00', '#ffff00', '#ff8800', '#ff0044', '#8800ff'];
   
   // Refs for stable game loop

@@ -17,14 +17,32 @@ const useThemeStore = create((set, get) => ({
       const response = await apiService.getThemes();
       
       if (response.success) {
+        // Ajouter les couleurs aux thèmes récupérés du serveur
+        const themesWithColors = response.data.themes.map(theme => {
+          // Définir les couleurs pour chaque thème
+          const themeColors = {
+            'neon': ['#00ffff', '#ff00ff', '#00ff00', '#ffff00', '#ff8800', '#ff0044', '#8800ff'],
+            'retro': ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6ab04c'],
+            'galaxy': ['#9b59b6', '#3498db', '#e74c3c', '#f39c12', '#1abc9c', '#34495e', '#e67e22'],
+            'cyberpunk': ['#ff006e', '#fb5607', '#ffbe0b', '#8338ec', '#3a86ff', '#06ffa5', '#ff4365'],
+            'pastel': ['#ffd3e1', '#c9f0ff', '#fff5ba', '#e4c1f9', '#a8e6cf', '#ffd3b6', '#ffaaa5'],
+            'glassmorphism': ['rgba(255, 255, 255, 0.45)', 'rgba(255, 182, 193, 0.5)', 'rgba(173, 216, 230, 0.5)', 'rgba(255, 255, 224, 0.45)', 'rgba(221, 160, 221, 0.5)', 'rgba(152, 251, 152, 0.45)', 'rgba(255, 218, 185, 0.5)']
+          };
+          
+          return {
+            ...theme,
+            colors: themeColors[theme.id] || themeColors['neon']
+          };
+        });
+        
         // Trouver le thème actuellement sélectionné
         const currentThemeId = response.data.userStats?.currentTheme || 'neon';
-        const currentThemeObj = response.data.themes.find(t => t.id === currentThemeId) || 
-                               response.data.themes.find(t => t.id === 'neon') ||
-                               response.data.themes[0];
+        const currentThemeObj = themesWithColors.find(t => t.id === currentThemeId) || 
+                               themesWithColors.find(t => t.id === 'neon') ||
+                               themesWithColors[0];
 
         set({
-          themes: response.data.themes,
+          themes: themesWithColors,
           currentTheme: currentThemeObj,
           isLoading: false,
           error: null
