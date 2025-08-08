@@ -11,7 +11,10 @@ const LevelDisplay = () => {
     levelChanged,
     currentEffect,
     themes,
-    currentTheme
+    currentTheme,
+    incrementLevel,
+    isPaused,
+    isGameOver
   } = useGameStore();
   
   const [showLevelUp, setShowLevelUp] = useState(false);
@@ -80,45 +83,113 @@ const LevelDisplay = () => {
             </motion.div>
           </div>
           
-          {/* Numéro du niveau avec effet */}
-          <motion.div 
-            className="text-4xl font-bold mb-4 relative"
-            style={{ color: primaryColor }}
-            animate={{
-              textShadow: currentEffect === 'electric' 
-                ? `0 0 20px ${primaryColor}, 0 0 40px ${primaryColor}`
-                : `0 0 10px ${primaryColor}80`
-            }}
-            transition={{ duration: 0.3 }}
-          >
-            {level}
+          {/* Numéro du niveau avec effet et flèche d'incrémentation */}
+          <div className="flex items-center justify-between mb-4">
+            <motion.div 
+              className="text-4xl font-bold relative"
+              style={{ color: primaryColor }}
+              animate={{
+                textShadow: currentEffect === 'electric' 
+                  ? `0 0 20px ${primaryColor}, 0 0 40px ${primaryColor}`
+                  : `0 0 10px ${primaryColor}80`
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              {level}
+              
+              {/* Particules d'effet autour du niveau */}
+              {currentEffect === 'fire' && (
+                <div className="absolute inset-0 pointer-events-none">
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-orange-400 rounded-full"
+                      style={{
+                        left: `${20 + i * 20}%`,
+                        top: `${10 + i * 15}%`
+                      }}
+                      animate={{
+                        y: [-5, -15, -5],
+                        opacity: [0, 1, 0],
+                        scale: [0.5, 1, 0.5]
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        delay: i * 0.3
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </motion.div>
             
-            {/* Particules d'effet autour du niveau */}
-            {currentEffect === 'fire' && (
-              <div className="absolute inset-0 pointer-events-none">
-                {[...Array(3)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-1 h-1 bg-orange-400 rounded-full"
-                    style={{
-                      left: `${20 + i * 20}%`,
-                      top: `${10 + i * 15}%`
-                    }}
-                    animate={{
-                      y: [-5, -15, -5],
-                      opacity: [0, 1, 0],
-                      scale: [0.5, 1, 0.5]
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: i * 0.3
-                    }}
-                  />
-                ))}
-              </div>
+            {/* Flèche d'incrémentation du niveau */}
+            {!isPaused && !isGameOver && level < 15 && (
+              <motion.button
+                onClick={incrementLevel}
+                className="flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110 active:scale-95"
+                style={{ 
+                  borderColor: primaryColor,
+                  color: primaryColor
+                }}
+                whileHover={{
+                  backgroundColor: `${primaryColor}20`,
+                  boxShadow: `0 0 15px ${primaryColor}40`
+                }}
+                whileTap={{ scale: 0.9 }}
+                title={`Augmenter le niveau (Max: 15)`}
+              >
+                <motion.svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  animate={{ 
+                    y: [0, -2, 0],
+                  }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <path d="M18 15l-6-6-6 6"/>
+                </motion.svg>
+              </motion.button>
             )}
-          </motion.div>
+            
+            {/* Indicateur niveau maximum */}
+            {level >= 15 && (
+              <motion.div
+                className="flex items-center justify-center w-8 h-8 rounded-full border-2"
+                style={{ 
+                  borderColor: `${primaryColor}40`,
+                  color: `${primaryColor}60`
+                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                title="Niveau maximum atteint"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </motion.div>
+            )}
+          </div>
           
           {/* Barre de progression */}
           <div className="space-y-2">

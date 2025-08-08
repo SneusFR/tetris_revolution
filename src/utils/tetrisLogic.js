@@ -91,8 +91,23 @@ export const getRandomTetromino = () => {
     name,
     ...tetromino,
     x: Math.floor(BOARD_WIDTH / 2) - Math.floor(tetromino.shape[0].length / 2),
-    y: -firstBlockRow // Start above the board to account for empty rows in piece matrix
+    y: -firstBlockRow, // Start above the board to account for empty rows in piece matrix
+    rotation: 0 // NEW: Add rotation state
   };
+};
+
+// Helper: Check if piece is grounded (touching the ground or another piece)
+export const isGrounded = (board, piece) => 
+  !isValidPosition(board, piece, piece.x, piece.y + 1);
+
+// Check if piece would lock above the top of the board (y < 0)
+export const wouldLockAboveTop = (piece) => {
+  for (let r = 0; r < piece.shape.length; r++) {
+    for (let c = 0; c < piece.shape[r].length; c++) {
+      if (piece.shape[r][c] && (piece.y + r) < 0) return true;
+    }
+  }
+  return false;
 };
 
 // Rotate matrix 90 degrees clockwise
@@ -131,20 +146,19 @@ export const isValidPosition = (board, piece, x, y) => {
 // Merge piece with board
 export const mergePiece = (board, piece) => {
   const newBoard = board.map(row => [...row]);
-  
-  for (let row = 0; row < piece.shape.length; row++) {
-    for (let col = 0; col < piece.shape[row].length; col++) {
-      if (piece.shape[row][col]) {
-        const boardY = piece.y + row;
-        const boardX = piece.x + col;
-        
-        if (boardY >= 0) {
-          newBoard[boardY][boardX] = piece.color + 1;
-        }
+  let overlap = false;
+
+  for (let r = 0; r < piece.shape.length; r++) {
+    for (let c = 0; c < piece.shape[r].length; c++) {
+      if (!piece.shape[r][c]) continue;
+      const y = piece.y + r, x = piece.x + c;
+      if (y >= 0) {
+        if (newBoard[y][x] !== 0) overlap = true;   // check
+        newBoard[y][x] = piece.color + 1;
       }
     }
   }
-  
+  if (overlap) return null; // signale une fusion illégale
   return newBoard;
 };
 
@@ -223,38 +237,20 @@ export const getGhostPieceY = (board, piece) => {
   return ghostY > piece.y ? ghostY : null;
 };
 
-// Check if game is over
-export const isGameOver = (board, newPiece = null) => {
-  // If we have a new piece, check if it can be placed at its spawn position
-  if (newPiece) {
-    // Try to place the piece at its spawn position
-    const canPlace = isValidPosition(board, newPiece, newPiece.x, newPiece.y);
-    
-    // If it can't be placed at spawn, try moving it up slightly
-    if (!canPlace) {
-      // Try placing it one row higher
-      const canPlaceHigher = isValidPosition(board, newPiece, newPiece.x, newPiece.y - 1);
-      if (canPlaceHigher) {
-        // Update the piece position to the valid position
-        newPiece.y = newPiece.y - 1;
-        return false;
-      }
-      return true; // Game over if it can't be placed even higher
-    }
-    
-    return false; // Piece can be placed normally
-  }
-  
-  // Fallback: check if the spawn area is blocked
-  // Check only the visible area where pieces actually spawn (rows 0-1)
-  for (let row = 0; row < 2; row++) {
-    for (let col = 3; col < 7; col++) { // Center columns where pieces spawn
-      if (board[row] && board[row][col] !== 0) {
-        return true;
-      }
+// Check if game is over - Pure function that doesn't mutate the piece
+export const isGameOver = (board, piece) => {
+  if (!piece) return false;
+  for (let r = 0; r < piece.shape.length; r++) {
+    for (let c = 0; c < piece.shape[r].length; c++) {
+      if (!piece.shape[r][c]) continue;
+      const y = piece.y + r;
+      const x = piece.x + c;
+      // Si une case de spawn touche quelque chose dans la grille visible -> top-out.
+      if (y >= 0 && (
+        y >= BOARD_HEIGHT || x < 0 || x >= BOARD_WIDTH || board[y][x] !== 0
+      )) return true;
     }
   }
-  
   return false;
 };
 
@@ -282,71 +278,33 @@ export const WALL_KICK_DATA = {
   }
 };
 
-// Try to rotate piece with wall kicks
+// Try to rotate piece with SRS wall kicks and ceiling kick protection
 export const tryRotate = (board, piece, direction = 1) => {
-  const rotatedShape = direction === 1 ? 
-    rotateMatrix(piece.shape) : 
-    rotateMatrix(rotateMatrix(rotateMatrix(piece.shape)));
-  
-  const rotatedPiece = {
-    ...piece,
-    shape: rotatedShape
-  };
-  
-  // Try basic rotation
-  if (isValidPosition(board, rotatedPiece, piece.x, piece.y)) {
-    return rotatedPiece;
-  }
-  
-  // Try simple wall kicks for all pieces
-  // These offsets help pieces rotate near walls
-  const simpleKicks = [
-    [0, 0],   // Try original position
-    [-1, 0],  // Try moving left
-    [1, 0],   // Try moving right
-    [0, -1],  // Try moving up
-    [-2, 0],  // Try moving 2 left (for I piece)
-    [2, 0],   // Try moving 2 right (for I piece)
-    [-1, -1], // Try moving left and up
-    [1, -1],  // Try moving right and up
-    [0, 1],   // Try moving down
-    [-1, 1],  // Try moving left and down
-    [1, 1],   // Try moving right and down
-  ];
-  
-  // For I piece, use special kicks
-  if (piece.name === 'I') {
-    const iKicks = [
-      [0, 0],
-      [-2, 0], [1, 0],
-      [-2, 1], [1, -2],
-      [0, -2], [0, 1],
-      [-1, -2], [2, 1],
-      [2, -1], [-1, 2]
-    ];
-    
-    for (const [kickX, kickY] of iKicks) {
-      if (isValidPosition(board, rotatedPiece, piece.x + kickX, piece.y + kickY)) {
-        return {
-          ...rotatedPiece,
-          x: piece.x + kickX,
-          y: piece.y + kickY
-        };
-      }
-    }
-  } else {
-    // For all other pieces, use simple kicks
-    for (const [kickX, kickY] of simpleKicks) {
-      if (isValidPosition(board, rotatedPiece, piece.x + kickX, piece.y + kickY)) {
-        return {
-          ...rotatedPiece,
-          x: piece.x + kickX,
-          y: piece.y + kickY
-        };
-      }
+  const from = piece.rotation || 0;
+  const to = (from + (direction === 1 ? 1 : 3)) % 4;
+
+  const rotatedShape = direction === 1 
+    ? rotateMatrix(piece.shape) 
+    : rotateMatrix(rotateMatrix(rotateMatrix(piece.shape)));
+
+  const rotatedPiece = { ...piece, shape: rotatedShape, rotation: to };
+
+  const table = piece.name === 'I' ? WALL_KICK_DATA.I : WALL_KICK_DATA.normal;
+  const key = `${from}->${to}`;
+  const kicks = table[key] || [[0, 0]];
+
+  const grounded = isGrounded(board, piece);
+
+  for (const [dx, dy] of kicks) {
+    // Interdit les kicks qui montent (dy < 0) si on n'est PAS au sol.
+    if (!grounded && dy < 0) continue;
+
+    const nx = piece.x + dx;
+    const ny = piece.y + dy;
+    if (isValidPosition(board, rotatedPiece, nx, ny)) {
+      return { ...rotatedPiece, x: nx, y: ny };
     }
   }
-  
   return null;
 };
 
@@ -376,7 +334,8 @@ export const generateBag = () => {
       name,
       ...tetromino,
       x: Math.floor(BOARD_WIDTH / 2) - Math.floor(tetromino.shape[0].length / 2),
-      y: -firstBlockRow // Start above the board to account for empty rows in piece matrix
+      y: -firstBlockRow, // Start above the board to account for empty rows in piece matrix
+      rotation: 0 // NEW: Add rotation state
     };
   });
 };

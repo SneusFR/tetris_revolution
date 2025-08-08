@@ -116,6 +116,20 @@ const useGameStore = create(
         };
       }),
       
+      // Nouvelle fonction pour incrémenter manuellement le niveau
+      incrementLevel: () => set((state) => {
+        if (state.level >= 15) return state; // Maximum de 15
+        
+        const newLevel = state.level + 1;
+        const newGameSpeed = Math.max(50, 1000 - ((newLevel - 1) * 80));
+        
+        return {
+          level: newLevel,
+          gameSpeed: newGameSpeed,
+          levelChanged: true, // Pour déclencher des animations
+        };
+      }),
+      
       // Nouvelle fonction pour obtenir les lignes nécessaires pour le prochain niveau
       getLinesForNextLevel: () => {
         const state = get();

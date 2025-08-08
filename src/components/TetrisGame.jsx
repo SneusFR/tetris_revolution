@@ -23,6 +23,7 @@ import {
   tryRotate,
   generateBag,
   getLinesToClear,
+  wouldLockAboveTop,
   BOARD_WIDTH,
   BOARD_HEIGHT
 } from '../utils/tetrisLogic';
@@ -48,6 +49,14 @@ const TetrisGame = () => {
   const gameLoopRef = useRef();
   const boardRef = useRef();
   const scoreRef = useRef();
+  
+  // Lock delay system refs
+  const contactRef = useRef(false);
+  const lockStartRef = useRef(0);
+  const lockResetsRef = useRef(0);
+
+  const LOCK_DELAY_MS = 500;      // 500ms lock delay
+  const MAX_LOCK_RESETS = 15;     // Maximum lock resets
 
   const {
     score,
@@ -224,8 +233,20 @@ const TetrisGame = () => {
           if (!piece) break;
           if (isValidPosition(boardStateRef.current, piece, piece.x, piece.y + 1)) {
             setCurrentPiece(p => p ? { ...p, y: p.y + 1 } : p);
+            // Quitte le sol => on annule l'état de contact
+            contactRef.current = false;
           } else {
-            lockPieceRef.current();
+            // La pièce ne peut plus descendre - gérer le lock delay
+            if (!contactRef.current) {
+              contactRef.current = true;
+              lockStartRef.current = performance.now();
+              lockResetsRef.current = 0;
+            }
+            const elapsed = performance.now() - lockStartRef.current;
+            if (elapsed >= LOCK_DELAY_MS) {
+              lockPieceRef.current();
+              contactRef.current = false;
+            }
           }
           accRef.current -= step;
         }
@@ -307,9 +328,26 @@ const TetrisGame = () => {
   }, [currentPiece, board]);
 
   const lockPiece = useCallback(() => {
-    if (!currentPiece || isAnimatingLines) return;
+    const piece = currentPieceRef.current;
+    const b = boardStateRef.current;
+    if (!piece || isAnimatingLines) return;
 
-    const newBoard = mergePiece(board, currentPiece);
+    // Sécurité: vérifier si la pièce se verrouille au-dessus du board
+    if (wouldLockAboveTop(piece)) {
+      setGameOver(true);
+      soundManager.stopMusic();
+      soundManager.playSound('gameOver', settings);
+      return;
+    }
+
+    const newBoard = mergePiece(b, piece);
+    if (!newBoard) {
+      // collision à la fusion -> on ne touche pas au board et on top-out proprement
+      setGameOver(true);
+      soundManager.stopMusic();
+      soundManager.playSound('gameOver', settings);
+      return;
+    }
     const linesToClear = getLinesToClear(newBoard);
     
     if (linesToClear.length > 0) {
@@ -418,60 +456,85 @@ const TetrisGame = () => {
   useEffect(() => { lockPieceRef.current = lockPiece; }, [lockPiece]);
 
   const moveLeft = useCallback(() => {
-    if (!currentPiece || isPaused || gameOver) return;
-    
-    if (isValidPosition(board, currentPiece, currentPiece.x - 1, currentPiece.y)) {
-      setCurrentPiece({
-        ...currentPiece,
-        x: currentPiece.x - 1
-      });
+    const piece = currentPieceRef.current;
+    const b = boardStateRef.current;
+    if (!piece || isPaused || gameOver) return;
+
+    if (isValidPosition(b, piece, piece.x - 1, piece.y)) {
+      setCurrentPiece(p => p ? { ...p, x: p.x - 1 } : p);
       soundManager.playSound('move', settings);
+      if (contactRef.current && lockResetsRef.current < MAX_LOCK_RESETS) {
+        lockStartRef.current = performance.now();
+        lockResetsRef.current += 1;
+      }
     }
-  }, [currentPiece, board, isPaused, gameOver, settings]);
+  }, [isPaused, gameOver, settings]);
 
   const moveRight = useCallback(() => {
-    if (!currentPiece || isPaused || gameOver) return;
-    
-    if (isValidPosition(board, currentPiece, currentPiece.x + 1, currentPiece.y)) {
-      setCurrentPiece({
-        ...currentPiece,
-        x: currentPiece.x + 1
-      });
+    const piece = currentPieceRef.current;
+    const b = boardStateRef.current;
+    if (!piece || isPaused || gameOver) return;
+
+    if (isValidPosition(b, piece, piece.x + 1, piece.y)) {
+      setCurrentPiece(p => p ? { ...p, x: p.x + 1 } : p);
       soundManager.playSound('move', settings);
+      if (contactRef.current && lockResetsRef.current < MAX_LOCK_RESETS) {
+        lockStartRef.current = performance.now();
+        lockResetsRef.current += 1;
+      }
     }
-  }, [currentPiece, board, isPaused, gameOver, settings]);
+  }, [isPaused, gameOver, settings]);
 
   const rotate = useCallback(() => {
-    if (!currentPiece || isPaused || gameOver) return;
-    
-    const rotated = tryRotate(board, currentPiece);
-    if (rotated) {
+    const piece = currentPieceRef.current;
+    const b = boardStateRef.current;
+    if (!piece || isPaused || gameOver) return;
+
+    const rotated = tryRotate(b, piece);
+    if (rotated && isValidPosition(b, rotated, rotated.x, rotated.y)) {
       setCurrentPiece(rotated);
       soundManager.playSound('rotate', settings);
+      if (contactRef.current && lockResetsRef.current < MAX_LOCK_RESETS) {
+        lockStartRef.current = performance.now();
+        lockResetsRef.current += 1;
+      }
     }
-  }, [currentPiece, board, isPaused, gameOver, settings]);
+  }, [isPaused, gameOver, settings]);
 
   const hardDrop = useCallback(() => {
-    if (!currentPiece || isPaused || gameOver || isHardDropping || isAnimatingLines) return;
-    
-    const ghostY = getGhostPieceY(board, currentPiece);
-    const dropDistance = ghostY - currentPiece.y;
+    const piece = currentPieceRef.current;
+    const b = boardStateRef.current;
+    if (!piece || isPaused || gameOver || isHardDropping || isAnimatingLines) return;
+
+    const gy = getGhostPieceY(b, piece);
+    if (gy == null) { lockPieceRef.current(); return; }
+
+    const dropDistance = gy - piece.y;
     
     // Set hard dropping state to prevent game loop interference
     setIsHardDropping(true);
     
     // Create the dropped piece with the new position
     const droppedPiece = {
-      ...currentPiece,
-      y: ghostY
+      ...piece,
+      y: gy
     };
+    
+    // Sécurité: vérifier si la pièce se verrouille au-dessus du board
+    if (wouldLockAboveTop(droppedPiece)) {
+      setGameOver(true);
+      soundManager.stopMusic();
+      soundManager.playSound('gameOver', settings);
+      setIsHardDropping(false);
+      return;
+    }
     
     // Update score for the drop distance
     updateScore(dropDistance * 2);
     soundManager.playSound('drop', settings);
     
     // Immediately lock the piece at the correct position
-    const newBoard = mergePiece(board, droppedPiece);
+    const newBoard = mergePiece(b, droppedPiece);
     const linesToClear = getLinesToClear(newBoard);
     
     if (linesToClear.length > 0) {
@@ -582,14 +645,22 @@ const TetrisGame = () => {
     if (!currentPiece || !canHold || isPaused || gameOver) return;
     
     const temp = holdPiece;
+    // Reset spawn position and rotation when putting piece in hold
     setHoldPiece({
       ...currentPiece,
       x: Math.floor(BOARD_WIDTH / 2) - Math.floor(currentPiece.shape[0].length / 2),
-      y: 0
+      y: 0,
+      rotation: 0
     });
     
     if (temp) {
-      setCurrentPiece(temp);
+      // Reset spawn position and rotation when taking piece from hold
+      setCurrentPiece({
+        ...temp,
+        x: Math.floor(BOARD_WIDTH / 2) - Math.floor(temp.shape[0].length / 2),
+        y: 0,
+        rotation: 0
+      });
     } else {
       const newPiece = getNewPiece();
       setCurrentPiece(newPiece);
@@ -597,7 +668,7 @@ const TetrisGame = () => {
     
     setCanHold(false);
     soundManager.playSound('move', settings);
-  }, [currentPiece, holdPiece, canHold, isPaused, gameOver, settings]);
+  }, [currentPiece, holdPiece, canHold, isPaused, gameOver, settings, getNewPiece]);
 
   // Professional Input Manager with DAS/ARR
   useEffect(() => {
@@ -861,7 +932,7 @@ const TetrisGame = () => {
             
             if (boardY >= 0 && boardY < BOARD_HEIGHT && 
                 boardX >= 0 && boardX < BOARD_WIDTH && 
-                displayBoard[boardY][boardX] === 0) {
+                displayBoard[boardY][boardX] === 0) {   // <-- AJOUT
               // Mark ghost piece cells with negative values to distinguish them
               displayBoard[boardY][boardX] = -(currentPiece.color + 1);
             }
