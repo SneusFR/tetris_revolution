@@ -8,6 +8,7 @@ import {
 import useAuthStore from '../store/authStore';
 import useBannerStore from '../store/bannerStore';
 import BannerDisplay from './BannerDisplay';
+import { assetUrl } from '../api/utils';
 
 const Profile = ({ onBack }) => {
   const { user, updateUserProfile, uploadAvatar, isLoading } = useAuthStore();
@@ -155,7 +156,7 @@ const Profile = ({ onBack }) => {
               <div className="w-32 h-32 rounded-full border-4 border-white/20 overflow-hidden glass-effect">
                 {user.profile?.avatar ? (
                   <img
-                    src={`http://localhost:5000${user.profile.avatar}`}
+                    src={assetUrl(user.profile.avatar)}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />

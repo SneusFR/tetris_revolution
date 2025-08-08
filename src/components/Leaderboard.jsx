@@ -4,6 +4,7 @@ import { FaArrowLeft, FaTrophy, FaCrown, FaMedal, FaFlag, FaUser, FaChevronLeft,
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import BannerDisplay from './BannerDisplay';
+import { assetUrl } from '../api/utils';
 
 const Leaderboard = ({ onBack }) => {
   const [leaderboardData, setLeaderboardData] = useState([]);
@@ -176,7 +177,7 @@ const Leaderboard = ({ onBack }) => {
               <div className={`absolute -top-4 left-1/2 transform -translate-x-1/2 w-16 h-16 rounded-full border-4 ${getRankStyle(2).border} overflow-hidden ${getRankStyle(2).glow}`}>
                 {leaderboardData[1]?.profile?.avatar ? (
                   <img
-                    src={`http://localhost:5000${leaderboardData[1].profile.avatar}`}
+                    src={assetUrl(leaderboardData[1].profile.avatar)}
                     alt={leaderboardData[1].username}
                     className="w-full h-full object-cover"
                   />
@@ -205,7 +206,7 @@ const Leaderboard = ({ onBack }) => {
               <div className={`absolute -top-6 left-1/2 transform -translate-x-1/2 w-20 h-20 rounded-full border-4 ${getRankStyle(1).border} overflow-hidden ${getRankStyle(1).glow}`}>
                 {leaderboardData[0]?.profile?.avatar ? (
                   <img
-                    src={`http://localhost:5000${leaderboardData[0].profile.avatar}`}
+                    src={assetUrl(leaderboardData[0].profile.avatar)}
                     alt={leaderboardData[0].username}
                     className="w-full h-full object-cover"
                   />
@@ -237,7 +238,7 @@ const Leaderboard = ({ onBack }) => {
               <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full border-4 ${getRankStyle(3).border} overflow-hidden ${getRankStyle(3).glow}`}>
                 {leaderboardData[2]?.profile?.avatar ? (
                   <img
-                    src={`http://localhost:5000${leaderboardData[2].profile.avatar}`}
+                    src={assetUrl(leaderboardData[2].profile.avatar)}
                     alt={leaderboardData[2].username}
                     className="w-full h-full object-cover"
                   />
@@ -291,7 +292,7 @@ const Leaderboard = ({ onBack }) => {
                   <div className={`w-16 h-16 rounded-full overflow-hidden border-3 ${getRankStyle(entry.rank).border} ${entry.rank <= 3 ? getRankStyle(entry.rank).glow : ''}`}>
                     {entry.profile?.avatar ? (
                       <img
-                        src={`http://localhost:5000${entry.profile.avatar}`}
+                        src={assetUrl(entry.profile.avatar)}
                         alt={entry.username}
                         className="w-full h-full object-cover"
                       />

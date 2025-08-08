@@ -4,6 +4,7 @@ import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignIn
 import useGameStore from '../store/gameStore';
 import useAuthStore from '../store/authStore';
 import useEffectStore from '../store/effectStore';
+import { assetUrl } from '../api/utils';
 
 const MainMenu = ({ onNavigate }) => {
   const { highScore, credits, statistics } = useGameStore();
@@ -86,7 +87,7 @@ const MainMenu = ({ onNavigate }) => {
             >
               {user?.profile?.avatar ? (
                 <img
-                  src={`http://localhost:5000${user.profile.avatar}`}
+                  src={assetUrl(user.profile.avatar)}
                   alt="Avatar"
                   className="w-8 h-8 rounded-full object-cover"
                 />
