@@ -1,6 +1,6 @@
 /**
  * Professional Input Manager with DAS/ARR support
- * Similar to Jstris input handling
+ * Similar to Jstris input handling t
  */
 
 class InputManager {
