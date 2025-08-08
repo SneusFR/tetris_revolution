@@ -377,9 +377,8 @@ const TetrisGame = () => {
     dlog('CMD/down      ');
     const piece = simPieceRef.current;
     const b = boardStateRef.current;
-    if (!piece) return;
-    
-    // Use authoritative engine for soft drop
+    if (!piece || isPaused || gameOver || isAnimatingLines) return;
+
     const movedPiece = applyMove(b, piece, { dy: 1 });
     if (movedPiece.y !== piece.y) {
       simPieceRef.current = movedPiece;
@@ -389,10 +388,15 @@ const TetrisGame = () => {
         contactRef.current = false;
       }
     } else {
-      dlog('CMD/down/LOCK');
-      lockPiece();
+      // pas de lock immédiat : on démarre/rafraîchit la fenêtre de lock
+      if (!contactRef.current) {
+        contactRef.current = true;
+        lockStartRef.current = performance.now();
+        lockResetsRef.current = 0;
+        dlog('CONTACT/SET   ', { y: piece.y, reason: 'softdrop' });
+      }
     }
-  }, []);
+  }, [isPaused, gameOver, isAnimatingLines]);
 
   const lockPiece = useCallback(() => {
     let piece = currentPieceRef.current;
@@ -1067,7 +1071,7 @@ const TetrisGame = () => {
             
             if (boardY >= 0 && boardY < BOARD_HEIGHT && 
                 boardX >= 0 && boardX < BOARD_WIDTH && 
-                displayBoard[boardY][boardX] === 0) {   // <-- AJOUT
+                displayBoard[boardY][boardX] === 0) {
               // Mark ghost piece cells with negative values to distinguish them
               displayBoard[boardY][boardX] = -(currentPiece.color + 1);
             }
@@ -1086,12 +1090,11 @@ const TetrisGame = () => {
             
             if (boardY >= 0 && boardY < BOARD_HEIGHT && 
                 boardX >= 0 && boardX < BOARD_WIDTH) {
-              if (displayBoard[boardY][boardX] !== 0) {
-                // On n'écrit rien ici, on LOG seulement pour voir si le "mangé" est visuel
+              // Ecrase le ghost sans warning
+              if (displayBoard[boardY][boardX] > 0) {
                 warn('RENDER/OVERLAP', { at: { x: boardX, y: boardY }, cell: displayBoard[boardY][boardX], piece: currentPiece.name });
-              } else {
-                displayBoard[boardY][boardX] = currentPiece.color + 1;
               }
+              displayBoard[boardY][boardX] = currentPiece.color + 1;
             }
           }
         }
