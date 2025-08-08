@@ -78,8 +78,10 @@ const TetrisGame = () => {
   const { fetchThemes, currentTheme: serverTheme, themes: serverThemes } = useThemeStore();
 
   // Utiliser les thèmes du serveur si disponibles, sinon utiliser ceux du gameStore local
+  // IMPORTANT: Utiliser le thème du serveur (serverTheme) si disponible, sinon currentTheme du gameStore
+  const activeThemeId = serverTheme?.id || currentTheme;
   const availableThemes = serverThemes && serverThemes.length > 0 ? serverThemes : themes;
-  const theme = availableThemes.find(t => t.id === currentTheme);
+  const theme = availableThemes.find(t => t.id === activeThemeId);
   const colors = theme ? theme.colors : ['#00ffff', '#ff00ff', '#00ff00', '#ffff00', '#ff8800', '#ff0044', '#8800ff'];
   
   // Refs for stable game loop
@@ -656,7 +658,7 @@ const TetrisGame = () => {
     const isDisappearing = disappearingLines.includes(y);
     
     // Special handling for glassmorphism theme
-    const isGlassmorphism = currentTheme === 'glassmorphism';
+    const isGlassmorphism = activeThemeId === 'glassmorphism';
     
     if (isGhost && ghostColor !== null) {
       if (isGlassmorphism) {
