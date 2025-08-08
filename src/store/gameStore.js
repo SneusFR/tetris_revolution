@@ -30,6 +30,7 @@ const useGameStore = create(
       levelChanged: false,
       gameStartTime: null,
       totalPlayTime: 0,
+      manualLevelBoost: 0, // Nombre de niveaux ajoutés manuellement
       
       // Combo system
       currentCombo: 0,
@@ -102,7 +103,8 @@ const useGameStore = create(
       })),
       
       updateLevel: () => set((state) => {
-        const newLevel = Math.floor(state.lines / 10) + 1;
+        const naturalLevel = Math.floor(state.lines / 10) + 1;
+        const newLevel = Math.max(naturalLevel, naturalLevel + state.manualLevelBoost);
         const levelChanged = newLevel !== state.level;
         
         // Calcul de la vitesse avec une progression plus fluide
@@ -120,11 +122,18 @@ const useGameStore = create(
       incrementLevel: () => set((state) => {
         if (state.level >= 15) return state; // Maximum de 15
         
-        const newLevel = state.level + 1;
+        const naturalLevel = Math.floor(state.lines / 10) + 1;
+        const newManualLevelBoost = state.manualLevelBoost + 1;
+        const newLevel = Math.max(naturalLevel, naturalLevel + newManualLevelBoost);
+        
+        // S'assurer qu'on ne dépasse pas le niveau 15
+        if (newLevel > 15) return state;
+        
         const newGameSpeed = Math.max(50, 1000 - ((newLevel - 1) * 80));
         
         return {
           level: newLevel,
+          manualLevelBoost: newManualLevelBoost,
           gameSpeed: newGameSpeed,
           levelChanged: true, // Pour déclencher des animations
         };
@@ -188,6 +197,7 @@ const useGameStore = create(
         levelChanged: false,
         gameStartTime: Date.now(),
         totalPlayTime: 0,
+        manualLevelBoost: 0,
       }),
       
       // Combo actions
