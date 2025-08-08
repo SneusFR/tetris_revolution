@@ -131,7 +131,7 @@ const MainMenu = ({ onNavigate }) => {
         className="text-center -mt-30"
       >
         <img 
-          src="/src/assets/logo.png" 
+          src="/logo.png" 
           alt="Logo" 
           className="mx-auto h-80 w-auto object-contain drop-shadow-2xl"
         />
