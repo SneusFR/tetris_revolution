@@ -6,7 +6,7 @@ class ApiService {
     // Cache pour éviter les appels répétés
     this.cache = new Map();
     this.lastRequestTimes = new Map();
-    // Délai minimum entre les requêtes (en ms)
+    // Délai minimum entre les () requêtes (en ms)
     this.REQUEST_COOLDOWN = 1000; // 1 seconde
   }
 
