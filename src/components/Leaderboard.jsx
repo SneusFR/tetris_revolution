@@ -407,7 +407,7 @@ const Leaderboard = ({ onBack }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2 }}
-        className="fixed bottom-6 left-6"
+        className="fixed top-6 left-6 z-50"
       >
         <button
           onClick={onBack}

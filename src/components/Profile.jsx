@@ -35,6 +35,7 @@ const Profile = ({ onBack }) => {
 
   const countries = [
     { code: 'FR', name: 'France', flag: '🇫🇷' },
+    { code: 'BE', name: 'Belgique', flag: '🇧🇪' },
     { code: 'US', name: 'États-Unis', flag: '🇺🇸' },
     { code: 'GB', name: 'Royaume-Uni', flag: '🇬🇧' },
     { code: 'DE', name: 'Allemagne', flag: '🇩🇪' },
@@ -124,7 +125,7 @@ const Profile = ({ onBack }) => {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-8"
+          className="relative mb-8 ml-8"
         >
           {/* Bannière */}
           <div className="relative h-48 rounded-2xl overflow-hidden glass-effect">
@@ -151,7 +152,7 @@ const Profile = ({ onBack }) => {
           </div>
 
           {/* Avatar */}
-          <div className="absolute -bottom-16 left-8">
+          <div className="absolute -bottom-16 left-8 z-20">
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-white/20 overflow-hidden glass-effect">
                 {user.profile?.avatar ? (
@@ -187,48 +188,17 @@ const Profile = ({ onBack }) => {
         </motion.div>
 
         {/* Informations utilisateur */}
-        <div className="ml-8 mb-8 pt-16">
-          {/* Nom d'utilisateur et bouton d'édition */}
+        <div className="ml-8 mb-8 -mt-16">
+          {/* Nom d'utilisateur */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="flex items-center justify-between mb-6"
+            className="mb-6"
           >
             <h1 className="text-4xl font-black bg-gradient-to-r from-neon-blue via-neon-purple to-neon-pink bg-clip-text text-transparent">
               {user.username}
             </h1>
-
-            {/* Boutons d'édition */}
-            <div className="flex items-center gap-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={isLoading}
-                    className="p-3 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 transition-colors flex items-center gap-2"
-                  >
-                    <FaSave />
-                    <span>Sauvegarder</span>
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="p-3 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 transition-colors flex items-center gap-2"
-                  >
-                    <FaTimes />
-                    <span>Annuler</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="p-3 rounded-lg glass-effect hover:bg-white/20 transition-colors flex items-center gap-2"
-                >
-                  <FaEdit />
-                  <span>Modifier</span>
-                </button>
-              )}
-            </div>
           </motion.div>
 
           {/* Glass Panel avec informations de profil */}
@@ -236,9 +206,39 @@ const Profile = ({ onBack }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="glass-effect rounded-xl p-6 mb-6 backdrop-blur-xl bg-white/5 border border-white/10"
+            className="glass-effect rounded-xl p-6 pb-16 mb-6 backdrop-blur-xl bg-white/5 border border-white/10 relative min-h-[140px]"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Bouton d'édition intégré */}
+            <div className="absolute top-4 right-4 z-10">
+              {isEditing ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="p-2 rounded-lg bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <FaSave className="text-sm" />
+                    <span>Sauvegarder</span>
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 transition-colors flex items-center gap-2 text-sm"
+                  >
+                    <FaTimes className="text-sm" />
+                    <span>Annuler</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-2 rounded-lg glass-effect hover:bg-white/20 transition-colors flex items-center gap-2 text-sm"
+                >
+                  <FaEdit className="text-sm" />
+                  <span>Modifier</span>
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
               {/* Rang/Niveau */}
               <div className="flex items-center gap-3 min-h-[80px]">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 border border-yellow-500/30 flex-shrink-0">
@@ -364,20 +364,21 @@ const Profile = ({ onBack }) => {
         </div>
 
         {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Meilleur score */}
+        <div className="ml-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Meilleur score */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="glass-effect rounded-xl p-6"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600">
-                <FaTrophy className="text-white" />
+            <div className="flex items-center gap-3 min-h-[80px]">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-400/20 to-yellow-600/20 border border-yellow-500/30 flex-shrink-0">
+                <FaTrophy className="text-2xl text-neon-yellow" />
               </div>
-              <div>
-                <p className="text-sm text-gray-400">Meilleur Score</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Meilleur Score</p>
                 <p className="text-2xl font-bold text-neon-yellow">
                   {(user.gameStats?.bestScore || 0).toLocaleString()}
                 </p>
@@ -392,12 +393,12 @@ const Profile = ({ onBack }) => {
             transition={{ delay: 0.3 }}
             className="glass-effect rounded-xl p-6"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600">
-                <FaGamepad className="text-white" />
+            <div className="flex items-center gap-3 min-h-[80px]">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-600/20 border border-blue-500/30 flex-shrink-0">
+                <FaGamepad className="text-2xl text-neon-blue" />
               </div>
-              <div>
-                <p className="text-sm text-gray-400">Parties Jouées</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Parties Jouées</p>
                 <p className="text-2xl font-bold text-neon-blue">
                   {(user.gameStats?.totalGames || 0).toLocaleString()}
                 </p>
@@ -412,12 +413,12 @@ const Profile = ({ onBack }) => {
             transition={{ delay: 0.4 }}
             className="glass-effect rounded-xl p-6"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-green-400 to-green-600">
-                <FaBullseye className="text-white" />
+            <div className="flex items-center gap-3 min-h-[80px]">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-green-400/20 to-green-600/20 border border-green-500/30 flex-shrink-0">
+                <FaBullseye className="text-2xl text-neon-green" />
               </div>
-              <div>
-                <p className="text-sm text-gray-400">Lignes Effacées</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Lignes Effacées</p>
                 <p className="text-2xl font-bold text-neon-green">
                   {(user.gameStats?.totalLinesCleared || 0).toLocaleString()}
                 </p>
@@ -432,27 +433,29 @@ const Profile = ({ onBack }) => {
             transition={{ delay: 0.5 }}
             className="glass-effect rounded-xl p-6"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600">
-                <FaClock className="text-white" />
+            <div className="flex items-center gap-3 min-h-[80px]">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400/20 to-purple-600/20 border border-purple-500/30 flex-shrink-0">
+                <FaClock className="text-2xl text-neon-purple" />
               </div>
-              <div>
-                <p className="text-sm text-gray-400">Temps de Jeu</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-400 uppercase tracking-wide mb-1">Temps de Jeu</p>
                 <p className="text-2xl font-bold text-neon-purple">
                   {formatTime(user.gameStats?.totalTimePlayed || 0)}
                 </p>
               </div>
             </div>
           </motion.div>
+          </div>
         </div>
 
         {/* Statistiques détaillées */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="glass-effect rounded-xl p-6 mb-8"
-        >
+        <div className="ml-8 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="glass-effect rounded-xl p-6"
+          >
           <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <FaChartLine className="text-neon-blue" />
             Statistiques Détaillées
@@ -504,7 +507,8 @@ const Profile = ({ onBack }) => {
               </div>
             </div>
           </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
         {/* Parties récentes */}
         {user.recentGames && user.recentGames.length > 0 && (
