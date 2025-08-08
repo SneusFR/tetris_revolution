@@ -11,6 +11,7 @@ import ParticleEffects from './ParticleEffects';
 import ScreenShake from './ScreenShake';
 import ScoreImpact from './ScoreImpact';
 import LevelDisplay from './LevelDisplay';
+import { dlog, dgroup, dend, nextTick, snapPiece, warn } from '../utils/debug';
 import {
   createBoard,
   isValidPosition,
@@ -24,6 +25,8 @@ import {
   generateBag,
   getLinesToClear,
   wouldLockAboveTop,
+  applyMove,
+  validatePiecePosition,
   BOARD_WIDTH,
   BOARD_HEIGHT
 } from '../utils/tetrisLogic';
@@ -101,9 +104,23 @@ const TetrisGame = () => {
   const accRef = useRef(0);
   const hueRef = useRef(0);
   
+  // Authoritative engine refs
+  const simPieceRef = useRef(null);
+  const lastValidRef = useRef(null);
+  const pendingInputsRef = useRef([]);
+  
   // Update refs when state changes
-  useEffect(() => { currentPieceRef.current = currentPiece; }, [currentPiece]);
+  useEffect(() => { 
+    currentPieceRef.current = currentPiece; 
+    simPieceRef.current = currentPiece;
+    if (currentPiece) lastValidRef.current = currentPiece;
+  }, [currentPiece]);
   useEffect(() => { boardStateRef.current = board; }, [board]);
+  
+  // Log when currentPiece changes
+  useEffect(() => {
+    dlog('PIECE/SET     ', { piece: snapPiece(currentPiece) });
+  }, [currentPiece]);
   
   // Update hue for rainbow effect every 100ms
   useEffect(() => {
@@ -207,13 +224,14 @@ const TetrisGame = () => {
     }
   }, [gameOver, isAuthenticated, score, level, lines, totalPlayTime, saveGameResult]);
 
-  // Optimized game loop with requestAnimationFrame limited to 60 FPS
+  // Authoritative game loop with limited steps per frame
   useEffect(() => {
     if (isPaused || gameOver || isHardDropping || isAnimatingLines) return;
 
     const step = gameSpeed; // en ms/ligne
     const targetFPS = 60;
     const frameTime = 1000 / targetFPS; // 16.67ms for 60 FPS
+    const MAX_STEPS_PER_FRAME = 4; // Limite le nombre de pas par frame
     let raf;
     let lastFrameTime = 0;
 
@@ -228,27 +246,62 @@ const TetrisGame = () => {
         const dt = Math.min(deltaFrame, frameTime * 2); // Cap at 2 frames to prevent huge jumps
         
         accRef.current += dt;
-        while (accRef.current >= step) {
-          const piece = currentPieceRef.current;
-          if (!piece) break;
-          if (isValidPosition(boardStateRef.current, piece, piece.x, piece.y + 1)) {
-            setCurrentPiece(p => p ? { ...p, y: p.y + 1 } : p);
-            // Quitte le sol => on annule l'état de contact
-            contactRef.current = false;
+        
+        // Authoritative engine: work on simulation piece
+        let simPiece = simPieceRef.current;
+        const board = boardStateRef.current;
+        let stepsProcessed = 0;
+        
+        // Process gravity steps with limit
+        while (accRef.current >= step && stepsProcessed < MAX_STEPS_PER_FRAME) {
+          const tick = nextTick();
+
+          if (!simPiece) { 
+            dlog('TICK/NO PIECE ', { tick }); 
+            break; 
+          }
+
+          dgroup(`TICK #${tick} ${snapPiece(simPiece)}`);
+          
+          // Apply gravity move using authoritative engine
+          const movedPiece = applyMove(board, simPiece, { dy: 1 });
+          const hasMoved = movedPiece.y !== simPiece.y;
+
+          if (hasMoved) {
+            dlog('MOVE/DOWN     ', { y: simPiece.y, '->': movedPiece.y });
+            simPiece = movedPiece;
+            simPieceRef.current = simPiece;
+            lastValidRef.current = simPiece;
+            
+            if (contactRef.current) {
+              dlog('CONTACT/LOST  ');
+              contactRef.current = false;
+            }
           } else {
-            // La pièce ne peut plus descendre - gérer le lock delay
             if (!contactRef.current) {
               contactRef.current = true;
               lockStartRef.current = performance.now();
               lockResetsRef.current = 0;
+              dlog('CONTACT/SET   ', { y: simPiece.y });
             }
             const elapsed = performance.now() - lockStartRef.current;
+            dlog('LOCK/ELAPSED  ', { ms: Math.round(elapsed), resets: lockResetsRef.current });
+
             if (elapsed >= LOCK_DELAY_MS) {
+              dlog('LOCK/COMMIT   ', { piece: snapPiece(simPiece) });
               lockPieceRef.current();
               contactRef.current = false;
             }
           }
+
           accRef.current -= step;
+          stepsProcessed++;
+          dend(); // fin de group tick
+        }
+        
+        // Single setState per frame with validated piece
+        if (simPiece && simPiece !== currentPieceRef.current) {
+          setCurrentPiece(simPiece);
         }
         
         // Update last frame time, accounting for the frame time to maintain consistent 60 FPS
@@ -267,8 +320,10 @@ const TetrisGame = () => {
   }, [isPaused, gameOver, gameSpeed, isHardDropping, isAnimatingLines]);
 
   const startNewGame = () => {
+    dgroup('START/GAME');
     resetGame();
     setBoard(createBoard());
+    dlog('BOARD/RESET   ');
     
     // Generate initial bags
     let initialBag = generateBag();
@@ -287,9 +342,12 @@ const TetrisGame = () => {
     setHoldPiece(null);
     setCanHold(true);
     
+    dlog('SPAWN/INIT    ', { current: initialBag[0]?.name, next: initialBag.slice(1,4).map(p=>p.name) });
+    
     if (settings.musicEnabled) {
       soundManager.playMusic(settings);
     }
+    dend();
   };
 
   const getNewPiece = useCallback(() => {
@@ -311,44 +369,77 @@ const TetrisGame = () => {
     // Save the remaining bag (excluding the piece we took and the 3 in preview)
     setBag(remainingBag);
     
+    dlog('SPAWN/NEXT    ', { piece: newPiece?.name, preview: remainingBag.slice(0,3).map(p=>p.name) });
     return newPiece;
   }, [bag]);
 
   const moveDown = useCallback(() => {
-    if (!currentPiece) return;
-
-    if (isValidPosition(board, currentPiece, currentPiece.x, currentPiece.y + 1)) {
-      setCurrentPiece({
-        ...currentPiece,
-        y: currentPiece.y + 1
-      });
+    dlog('CMD/down      ');
+    const piece = simPieceRef.current;
+    const b = boardStateRef.current;
+    if (!piece) return;
+    
+    // Use authoritative engine for soft drop
+    const movedPiece = applyMove(b, piece, { dy: 1 });
+    if (movedPiece.y !== piece.y) {
+      simPieceRef.current = movedPiece;
+      lastValidRef.current = movedPiece;
+      setCurrentPiece(movedPiece);
+      if (contactRef.current) {
+        contactRef.current = false;
+      }
     } else {
+      dlog('CMD/down/LOCK');
       lockPiece();
     }
-  }, [currentPiece, board]);
+  }, []);
 
   const lockPiece = useCallback(() => {
-    const piece = currentPieceRef.current;
+    let piece = currentPieceRef.current;
     const b = boardStateRef.current;
     if (!piece || isAnimatingLines) return;
 
-    // Sécurité: vérifier si la pièce se verrouille au-dessus du board
-    if (wouldLockAboveTop(piece)) {
+    dgroup(`LOCK/START ${snapPiece(piece)}`);
+
+    // Safety validation: try to fix piece position if invalid
+    const validatedPiece = validatePiecePosition(b, piece);
+    if (!validatedPiece) {
+      dlog('LOCK/UNFIXABLE');
       setGameOver(true);
       soundManager.stopMusic();
       soundManager.playSound('gameOver', settings);
+      dend();
+      return;
+    }
+    
+    // Use validated piece for locking
+    piece = validatedPiece;
+    if (piece !== currentPieceRef.current) {
+      dlog('LOCK/FIXED    ', { from: snapPiece(currentPieceRef.current), to: snapPiece(piece) });
+    }
+
+    if (wouldLockAboveTop(piece)) {
+      dlog('LOCK/ABOVETOP ');
+      setGameOver(true);
+      soundManager.stopMusic();
+      soundManager.playSound('gameOver', settings);
+      dend();
       return;
     }
 
     const newBoard = mergePiece(b, piece);
     if (!newBoard) {
-      // collision à la fusion -> on ne touche pas au board et on top-out proprement
+      // Fusion illégale détectée -> on log fort
+      warn('LOCK/ILLEGAL  ', { piece: snapPiece(piece) });
       setGameOver(true);
       soundManager.stopMusic();
       soundManager.playSound('gameOver', settings);
+      dend();
       return;
     }
+
     const linesToClear = getLinesToClear(newBoard);
+    dlog('LOCK/MERGED   ', { linesToClear });
     
     if (linesToClear.length > 0) {
       // Instead of clearing the current piece immediately, we'll update the board
@@ -431,6 +522,7 @@ const TetrisGame = () => {
           
           setCurrentPiece(newPiece);
           setCanHold(true);
+          dend();
         }, 125); // Duration of disappear animation (2x faster)
       }, 75); // Duration of highlight animation (2x faster)
     } else {
@@ -444,11 +536,13 @@ const TetrisGame = () => {
         setGameOver(true);
         soundManager.stopMusic();
         soundManager.playSound('gameOver', settings);
+        dend();
         return;
       }
       
       setCurrentPiece(newPiece);
       setCanHold(true);
+      dend();
     }
   }, [currentPiece, board, level, settings, isAnimatingLines, getNewPiece, updateScore, updateLines, updateLevel, setGameOver]);
 
@@ -456,47 +550,87 @@ const TetrisGame = () => {
   useEffect(() => { lockPieceRef.current = lockPiece; }, [lockPiece]);
 
   const moveLeft = useCallback(() => {
-    const piece = currentPieceRef.current;
+    dlog('CMD/left      ');
+    const piece = simPieceRef.current;
     const b = boardStateRef.current;
     if (!piece || isPaused || gameOver) return;
 
-    if (isValidPosition(b, piece, piece.x - 1, piece.y)) {
-      setCurrentPiece(p => p ? { ...p, x: p.x - 1 } : p);
+    // Use authoritative engine for movement
+    const movedPiece = applyMove(b, piece, { dx: -1 });
+    if (movedPiece.x !== piece.x) {
+      simPieceRef.current = movedPiece;
+      lastValidRef.current = movedPiece;
+      setCurrentPiece(movedPiece);
       soundManager.playSound('move', settings);
+      
+      // Reset lock delay if piece moved and was in contact
       if (contactRef.current && lockResetsRef.current < MAX_LOCK_RESETS) {
-        lockStartRef.current = performance.now();
-        lockResetsRef.current += 1;
+        // Check if piece is still grounded after move
+        const stillGrounded = !isValidPosition(b, movedPiece, movedPiece.x, movedPiece.y + 1);
+        if (stillGrounded) {
+          lockStartRef.current = performance.now();
+          lockResetsRef.current += 1;
+        } else {
+          contactRef.current = false;
+        }
       }
     }
   }, [isPaused, gameOver, settings]);
 
   const moveRight = useCallback(() => {
-    const piece = currentPieceRef.current;
+    dlog('CMD/right     ');
+    const piece = simPieceRef.current;
     const b = boardStateRef.current;
     if (!piece || isPaused || gameOver) return;
 
-    if (isValidPosition(b, piece, piece.x + 1, piece.y)) {
-      setCurrentPiece(p => p ? { ...p, x: p.x + 1 } : p);
+    // Use authoritative engine for movement
+    const movedPiece = applyMove(b, piece, { dx: 1 });
+    if (movedPiece.x !== piece.x) {
+      simPieceRef.current = movedPiece;
+      lastValidRef.current = movedPiece;
+      setCurrentPiece(movedPiece);
       soundManager.playSound('move', settings);
+      
+      // Reset lock delay if piece moved and was in contact
       if (contactRef.current && lockResetsRef.current < MAX_LOCK_RESETS) {
-        lockStartRef.current = performance.now();
-        lockResetsRef.current += 1;
+        // Check if piece is still grounded after move
+        const stillGrounded = !isValidPosition(b, movedPiece, movedPiece.x, movedPiece.y + 1);
+        if (stillGrounded) {
+          lockStartRef.current = performance.now();
+          lockResetsRef.current += 1;
+        } else {
+          contactRef.current = false;
+        }
       }
     }
   }, [isPaused, gameOver, settings]);
 
   const rotate = useCallback(() => {
-    const piece = currentPieceRef.current;
+    dlog('CMD/rotate    ');
+    const piece = simPieceRef.current;
     const b = boardStateRef.current;
     if (!piece || isPaused || gameOver) return;
 
-    const rotated = tryRotate(b, piece);
-    if (rotated && isValidPosition(b, rotated, rotated.x, rotated.y)) {
-      setCurrentPiece(rotated);
+    // Use authoritative engine for rotation
+    const rotatedPiece = applyMove(b, piece, { rot: 1 });
+    if (rotatedPiece.rotation !== piece.rotation || 
+        rotatedPiece.x !== piece.x || 
+        rotatedPiece.y !== piece.y) {
+      simPieceRef.current = rotatedPiece;
+      lastValidRef.current = rotatedPiece;
+      setCurrentPiece(rotatedPiece);
       soundManager.playSound('rotate', settings);
+      
+      // Reset lock delay if piece rotated and was in contact
       if (contactRef.current && lockResetsRef.current < MAX_LOCK_RESETS) {
-        lockStartRef.current = performance.now();
-        lockResetsRef.current += 1;
+        // Check if piece is still grounded after rotation
+        const stillGrounded = !isValidPosition(b, rotatedPiece, rotatedPiece.x, rotatedPiece.y + 1);
+        if (stillGrounded) {
+          lockStartRef.current = performance.now();
+          lockResetsRef.current += 1;
+        } else {
+          contactRef.current = false;
+        }
       }
     }
   }, [isPaused, gameOver, settings]);
@@ -510,6 +644,7 @@ const TetrisGame = () => {
     if (gy == null) { lockPieceRef.current(); return; }
 
     const dropDistance = gy - piece.y;
+    dlog('DROP/HARD     ', { from: piece.y, to: gy, dist: dropDistance });
     
     // Set hard dropping state to prevent game loop interference
     setIsHardDropping(true);
@@ -951,7 +1086,12 @@ const TetrisGame = () => {
             
             if (boardY >= 0 && boardY < BOARD_HEIGHT && 
                 boardX >= 0 && boardX < BOARD_WIDTH) {
-              displayBoard[boardY][boardX] = currentPiece.color + 1;
+              if (displayBoard[boardY][boardX] !== 0) {
+                // On n'écrit rien ici, on LOG seulement pour voir si le "mangé" est visuel
+                warn('RENDER/OVERLAP', { at: { x: boardX, y: boardY }, cell: displayBoard[boardY][boardX], piece: currentPiece.name });
+              } else {
+                displayBoard[boardY][boardX] = currentPiece.color + 1;
+              }
             }
           }
         }

@@ -1,4 +1,5 @@
 // Tetris game constants and logic
+import { dlog, warn } from '../utils/debug';
 
 export const BOARD_WIDTH = 10;
 export const BOARD_HEIGHT = 20;
@@ -125,18 +126,26 @@ export const rotateMatrix = (matrix) => {
 };
 
 // Check if position is valid
-export const isValidPosition = (board, piece, x, y) => {
+export const isValidPosition = (board, piece, x, y, _dbg) => {
   for (let row = 0; row < piece.shape.length; row++) {
     for (let col = 0; col < piece.shape[row].length; col++) {
-      if (piece.shape[row][col]) {
-        const newX = x + col;
-        const newY = y + row;
-        
-        if (newX < 0 || newX >= BOARD_WIDTH || 
-            newY >= BOARD_HEIGHT ||
-            (newY >= 0 && board[newY][newX])) {
-          return false;
-        }
+      if (!piece.shape[row][col]) continue;
+
+      const newX = x + col;
+      const newY = y + row;
+
+      // Hors limites
+      if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
+        if (_dbg) dlog('COLLIDE/BOUND', { x:newX, y:newY, piece: piece.name });
+        return false;
+      }
+      // En haut du board : autorisé tant que <= -1 (spawn)
+      if (newY < 0) continue;
+
+      // Cellule occupée
+      if (board[newY][newX]) {
+        if (_dbg) dlog('COLLIDE/CELL ', { x:newX, y:newY, val: board[newY][newX], piece: piece.name });
+        return false;
       }
     }
   }
@@ -147,18 +156,32 @@ export const isValidPosition = (board, piece, x, y) => {
 export const mergePiece = (board, piece) => {
   const newBoard = board.map(row => [...row]);
   let overlap = false;
+  const overlaps = [];
 
   for (let r = 0; r < piece.shape.length; r++) {
     for (let c = 0; c < piece.shape[r].length; c++) {
       if (!piece.shape[r][c]) continue;
-      const y = piece.y + r, x = piece.x + c;
+      const y = piece.y + r;
+      const x = piece.x + c;
+
+      // Sécurité x avant d'indexer
+      if (x < 0 || x >= BOARD_WIDTH) {
+        warn('MERGE/OOB-X', { x, y, piece: piece.name });
+        return null;
+      }
       if (y >= 0) {
-        if (newBoard[y][x] !== 0) overlap = true;   // check
+        if (newBoard[y][x] !== 0) {
+          overlap = true;
+          overlaps.push({ x, y, existing: newBoard[y][x] });
+        }
         newBoard[y][x] = piece.color + 1;
       }
     }
   }
-  if (overlap) return null; // signale une fusion illégale
+  if (overlap) {
+    warn('MERGE/OVERLAP', { piece: piece.name, at: { x: piece.x, y: piece.y }, overlaps });
+    return null;
+  }
   return newBoard;
 };
 
@@ -292,19 +315,77 @@ export const tryRotate = (board, piece, direction = 1) => {
   const table = piece.name === 'I' ? WALL_KICK_DATA.I : WALL_KICK_DATA.normal;
   const key = `${from}->${to}`;
   const kicks = table[key] || [[0, 0]];
-
   const grounded = isGrounded(board, piece);
 
   for (const [dx, dy] of kicks) {
-    // Interdit les kicks qui montent (dy < 0) si on n'est PAS au sol.
-    if (!grounded && dy < 0) continue;
+    if (!grounded && dy < 0) continue; // ta règle
 
     const nx = piece.x + dx;
     const ny = piece.y + dy;
-    if (isValidPosition(board, rotatedPiece, nx, ny)) {
+
+    if (isValidPosition(board, rotatedPiece, nx, ny, 'ROT')) {
+      dlog('ROTATE/OK     ', { name: piece.name, from, to, kick:[dx,dy], grounded });
       return { ...rotatedPiece, x: nx, y: ny };
     }
   }
+  dlog('ROTATE/FAIL   ', { name: piece.name, from, to, grounded });
+  return null;
+};
+
+// Apply a single move to a piece (for authoritative engine)
+export const applyMove = (board, piece, { dx = 0, dy = 0, rot = 0 }) => {
+  if (!piece) return piece;
+  
+  let candidate = piece;
+  
+  // Apply rotation first if requested
+  if (rot !== 0) {
+    const rotated = tryRotate(board, candidate, rot > 0 ? 1 : -1);
+    if (rotated) {
+      candidate = rotated;
+    }
+    // If rotation fails, continue with translation
+  }
+  
+  // Apply horizontal movement
+  if (dx !== 0) {
+    const newX = candidate.x + dx;
+    if (isValidPosition(board, candidate, newX, candidate.y)) {
+      candidate = { ...candidate, x: newX };
+    }
+  }
+  
+  // Apply vertical movement
+  if (dy !== 0) {
+    const newY = candidate.y + dy;
+    if (isValidPosition(board, candidate, candidate.x, newY)) {
+      candidate = { ...candidate, y: newY };
+    }
+  }
+  
+  return candidate;
+};
+
+// Validate and potentially fix a piece position (fallback for lock safety)
+export const validatePiecePosition = (board, piece) => {
+  if (!piece) return null;
+  
+  // First check if current position is valid
+  if (isValidPosition(board, piece, piece.x, piece.y)) {
+    return piece;
+  }
+  
+  // Try to move up a few positions to find a valid spot
+  for (let offset = 1; offset <= 3; offset++) {
+    const testY = piece.y - offset;
+    if (isValidPosition(board, piece, piece.x, testY)) {
+      warn('PIECE/FIXED   ', { from: piece.y, to: testY, offset });
+      return { ...piece, y: testY };
+    }
+  }
+  
+  // If we can't fix it, return null to trigger game over
+  warn('PIECE/UNFIXABLE', { piece: piece.name, x: piece.x, y: piece.y });
   return null;
 };
 
