@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaArrowLeft, FaTrophy, FaCrown, FaMedal, FaFlag, FaUser, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import useBannerStore from '../store/bannerStore';
 import BannerDisplay from './BannerDisplay';
 import { assetUrl } from '../api/utils';
 
@@ -15,23 +16,29 @@ const Leaderboard = ({ onBack }) => {
   const [totalPages, setTotalPages] = useState(1);
   
   const { user } = useAuthStore();
+  const { fetchBanners } = useBannerStore();
 
   useEffect(() => {
-    fetchLeaderboard();
+    initializeData();
   }, [currentPage]);
 
-  const fetchLeaderboard = async () => {
+  const initializeData = async () => {
     try {
       setLoading(true);
-      const response = await api.getLeaderboard('global', { 
-        page: currentPage, 
-        limit: 20 
-      });
       
-      if (response) {
-        setLeaderboardData(response.leaderboard || []);
-        setUserRank(response.userRank);
-        setTotalPages(response.pagination?.total || 1);
+      // Charger les bannières en parallèle du leaderboard
+      const [leaderboardResponse] = await Promise.all([
+        api.getLeaderboard('global', { 
+          page: currentPage, 
+          limit: 20 
+        }),
+        fetchBanners() // Charger les bannières depuis l'API
+      ]);
+      
+      if (leaderboardResponse) {
+        setLeaderboardData(leaderboardResponse.leaderboard || []);
+        setUserRank(leaderboardResponse.userRank);
+        setTotalPages(leaderboardResponse.pagination?.total || 1);
       }
     } catch (err) {
       setError('Erreur lors du chargement du leaderboard');
@@ -273,15 +280,15 @@ const Leaderboard = ({ onBack }) => {
               }`}
             >
               {/* Bannière en arrière-plan */}
-              <div className="absolute inset-0 opacity-30">
+              <div className="absolute inset-0 opacity-90">
                 <BannerDisplay 
                   bannerId={entry.profile?.banner || 'default'} 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
                 />
               </div>
 
               {/* Contenu de la card */}
-              <div className="relative bg-black/60 backdrop-blur-sm p-6 flex items-center space-x-6">
+              <div className="relative bg-black/30 backdrop-blur-sm p-6 flex items-center space-x-6">
                 {/* Rang */}
                 <div className={`flex-shrink-0 w-16 h-16 rounded-full bg-gradient-to-br ${getRankStyle(entry.rank).gradient} flex items-center justify-center text-white font-bold text-xl ${getRankStyle(entry.rank).shadow} shadow-lg`}>
                   #{entry.rank}

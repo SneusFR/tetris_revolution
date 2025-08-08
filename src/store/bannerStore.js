@@ -76,12 +76,34 @@ const useBannerStore = create((set, get) => ({
   // Obtenir une bannière par ID
   getBannerById: (bannerId) => {
     const { banners } = get();
-    return banners.find(banner => banner.id === bannerId) || banners[0] || { 
+    const found = banners.find(banner => banner.id === bannerId);
+    
+    if (found) {
+      return found;
+    }
+    
+    // Bannière par défaut si non trouvée
+    const defaultBanner = { 
       id: 'default', 
       name: 'Défaut', 
       type: 'gradient', 
       config: { gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' } 
     };
+    
+    // Si c'est tetris_classic et qu'on ne l'a pas trouvée, créer une version par défaut
+    if (bannerId === 'tetris_classic') {
+      return {
+        id: 'tetris_classic',
+        name: 'Tetris Classique',
+        type: 'tetris',
+        config: {
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+          pieces: ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
+        }
+      };
+    }
+    
+    return defaultBanner;
   },
 
   // Vérifier si une bannière est possédée

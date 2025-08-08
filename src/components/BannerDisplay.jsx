@@ -1,12 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import useBannerStore from '../store/bannerStore';
 
-const BannerDisplay = ({ banner, className = '' }) => {
+const BannerDisplay = ({ banner, bannerId, className = '' }) => {
+  const { getBannerById, banners } = useBannerStore();
+  
+  // Si on reçoit un bannerId, récupérer l'objet bannière depuis le store
+  const bannerObj = banner || (bannerId ? getBannerById(bannerId) : null);
+  
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
 
   useEffect(() => {
-    if (!banner || !canvasRef.current) return;
+    if (!bannerObj || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -25,9 +31,9 @@ const BannerDisplay = ({ banner, className = '' }) => {
       tetrisPieces = [];
       matrixChars = [];
 
-      switch (banner.type) {
+      switch (bannerObj.type) {
         case 'particles':
-          for (let i = 0; i < banner.config.particleCount; i++) {
+          for (let i = 0; i < bannerObj.config.particleCount; i++) {
             particles.push({
               x: Math.random() * canvas.width,
               y: Math.random() * canvas.height,
@@ -51,7 +57,7 @@ const BannerDisplay = ({ banner, className = '' }) => {
           };
 
           for (let i = 0; i < 8; i++) {
-            const pieceType = banner.config.pieces[Math.floor(Math.random() * banner.config.pieces.length)];
+            const pieceType = bannerObj.config.pieces[Math.floor(Math.random() * bannerObj.config.pieces.length)];
             tetrisPieces.push({
               x: Math.random() * canvas.width,
               y: -50,
@@ -83,7 +89,7 @@ const BannerDisplay = ({ banner, className = '' }) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       time += 0.016;
 
-      switch (banner.type) {
+      switch (bannerObj.type) {
         case 'gradient':
           // Pas d'animation nécessaire, le CSS gère le gradient
           break;
@@ -97,7 +103,7 @@ const BannerDisplay = ({ banner, className = '' }) => {
             if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
 
             ctx.globalAlpha = particle.opacity;
-            ctx.fillStyle = banner.config.particleColor;
+            ctx.fillStyle = bannerObj.config.particleColor;
             ctx.beginPath();
             ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
             ctx.fill();
@@ -142,7 +148,7 @@ const BannerDisplay = ({ banner, className = '' }) => {
 
         case 'grid':
           const gridSize = 30;
-          ctx.strokeStyle = banner.config.gridColor;
+          ctx.strokeStyle = bannerObj.config.gridColor;
           ctx.lineWidth = 1;
           ctx.globalAlpha = 0.3 + Math.sin(time * 2) * 0.2;
 
@@ -163,8 +169,8 @@ const BannerDisplay = ({ banner, className = '' }) => {
 
         case 'wave':
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-          banner.config.waveColors.forEach((color, index) => {
-            gradient.addColorStop(index / (banner.config.waveColors.length - 1), color);
+          bannerObj.config.waveColors.forEach((color, index) => {
+            gradient.addColorStop(index / (bannerObj.config.waveColors.length - 1), color);
           });
 
           ctx.fillStyle = gradient;
@@ -186,7 +192,7 @@ const BannerDisplay = ({ banner, className = '' }) => {
 
         case 'matrix':
           ctx.font = '14px monospace';
-          ctx.fillStyle = banner.config.textColor;
+          ctx.fillStyle = bannerObj.config.textColor;
 
           matrixChars.forEach(char => {
             char.y += char.speed;
@@ -207,8 +213,8 @@ const BannerDisplay = ({ banner, className = '' }) => {
             const y = canvas.height - Math.random() * 100;
             const size = Math.random() * 20 + 5;
             
-            const colorIndex = Math.floor(Math.random() * banner.config.flameColors.length);
-            ctx.fillStyle = banner.config.flameColors[colorIndex];
+            const colorIndex = Math.floor(Math.random() * bannerObj.config.flameColors.length);
+            ctx.fillStyle = bannerObj.config.flameColors[colorIndex];
             ctx.globalAlpha = Math.random() * 0.8 + 0.2;
             
             ctx.beginPath();
@@ -218,7 +224,7 @@ const BannerDisplay = ({ banner, className = '' }) => {
           break;
 
         case 'circuit':
-          ctx.strokeStyle = banner.config.circuitColor;
+          ctx.strokeStyle = bannerObj.config.circuitColor;
           ctx.lineWidth = 2;
           ctx.globalAlpha = 0.6 + Math.sin(time * 3) * 0.3;
 
@@ -259,20 +265,36 @@ const BannerDisplay = ({ banner, className = '' }) => {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [banner]);
+  }, [bannerObj]);
 
-  if (!banner || !banner.config) return null;
+  if (!bannerObj) {
+    return (
+      <div 
+        className={`relative overflow-hidden ${className}`}
+        style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+      />
+    );
+  }
+
+  if (!bannerObj.config) {
+    return (
+      <div 
+        className={`relative overflow-hidden ${className}`}
+        style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+      />
+    );
+  }
 
   return (
     <div 
       className={`relative overflow-hidden ${className}`}
-      style={{ background: banner.config?.background || banner.config?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+      style={{ background: bannerObj.config?.background || bannerObj.config?.gradient || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
     >
-      {banner.type !== 'gradient' && (
+      {bannerObj.type !== 'gradient' && (
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full"
-          style={{ mixBlendMode: banner.type === 'fire' ? 'screen' : 'normal' }}
+          style={{ mixBlendMode: bannerObj.type === 'fire' ? 'screen' : 'normal' }}
         />
       )}
     </div>
