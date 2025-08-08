@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaArrowLeft, FaPalette, FaStar, FaCoins, FaCheck, FaLock, FaImage } from 'react-icons/fa';
+import { FaArrowLeft, FaPalette, FaStar, FaCoins, FaCheck, FaLock, FaImage, FaTrophy, FaGamepad, FaChartLine, FaLayerGroup } from 'react-icons/fa';
 import useAuthStore from '../store/authStore';
 import useBannerStore from '../store/bannerStore';
 import useThemeStore from '../store/themeStore';
@@ -118,6 +118,142 @@ const Shop = ({ onBack }) => {
     const result = await purchaseBanner(bannerId);
     if (!result.success) {
       console.error('Erreur lors de l\'achat de la bannière:', result.error);
+    }
+  };
+
+  // Définir les conditions de déblocage des bannières
+  const getBannerUnlockConditions = (bannerId) => {
+    const conditions = {
+      'default': { type: 'none', description: 'Toujours disponible', icon: <FaCheck />, color: 'text-green-400' },
+      'tetris_classic': { type: 'none', description: 'Toujours disponible', icon: <FaCheck />, color: 'text-green-400' },
+      'neon_grid': { 
+        type: 'score', 
+        description: 'Score ≥ 50,000', 
+        requirement: 50000,
+        icon: <FaTrophy />, 
+        color: 'text-yellow-400',
+        statKey: 'bestScore'
+      },
+      'particle_storm': { 
+        type: 'lines', 
+        description: 'Lignes ≥ 500', 
+        requirement: 500,
+        icon: <FaLayerGroup />, 
+        color: 'text-blue-400',
+        statKey: 'totalLinesCleared'
+      },
+      'rainbow_wave': { 
+        type: 'level', 
+        description: 'Niveau ≥ 15', 
+        requirement: 15,
+        icon: <FaChartLine />, 
+        color: 'text-purple-400',
+        statKey: 'level'
+      },
+      'matrix_rain': { 
+        type: 'games', 
+        description: 'Parties ≥ 100', 
+        requirement: 100,
+        icon: <FaGamepad />, 
+        color: 'text-green-400',
+        statKey: 'totalGames'
+      },
+      'fire_storm': { 
+        type: 'score', 
+        description: 'Score ≥ 100,000', 
+        requirement: 100000,
+        icon: <FaTrophy />, 
+        color: 'text-red-400',
+        statKey: 'bestScore'
+      },
+      'cyber_circuit': { 
+        type: 'rank', 
+        description: 'Rang ≤ 10', 
+        requirement: 10,
+        icon: <FaStar />, 
+        color: 'text-cyan-400',
+        statKey: 'bestRank'
+      }
+    };
+    
+    return conditions[bannerId] || conditions['default'];
+  };
+
+  // Vérifier si une bannière peut être débloquée
+  const canUnlockBanner = (bannerId) => {
+    const condition = getBannerUnlockConditions(bannerId);
+    if (condition.type === 'none') return true;
+    
+    let currentValue = 0;
+    
+    // Récupérer la valeur selon le type de condition
+    switch (condition.type) {
+      case 'score':
+        currentValue = user?.gameStats?.bestScore || 0;
+        break;
+      case 'lines':
+        currentValue = user?.gameStats?.totalLinesCleared || 0;
+        break;
+      case 'level':
+        currentValue = user?.profile?.level || 0;
+        break;
+      case 'games':
+        currentValue = user?.gameStats?.totalGames || 0;
+        break;
+      case 'rank':
+        currentValue = user?.ranking?.bestRank || 0;
+        break;
+      default:
+        return false;
+    }
+    
+    if (condition.type === 'rank') {
+      // Pour le rang, on vérifie si le rang est <= à la condition (plus petit = meilleur)
+      return currentValue > 0 && currentValue <= condition.requirement;
+    } else {
+      // Pour les autres stats, on vérifie si la valeur est >= à la condition
+      return currentValue >= condition.requirement;
+    }
+  };
+
+  // Obtenir le statut de progression pour une bannière
+  const getBannerProgress = (bannerId) => {
+    const condition = getBannerUnlockConditions(bannerId);
+    if (condition.type === 'none') return { current: 1, required: 1, percentage: 100 };
+    
+    let currentValue = 0;
+    
+    // Récupérer la valeur selon le type de condition
+    switch (condition.type) {
+      case 'score':
+        currentValue = user?.gameStats?.bestScore || 0;
+        break;
+      case 'lines':
+        currentValue = user?.gameStats?.totalLinesCleared || 0;
+        break;
+      case 'level':
+        currentValue = user?.profile?.level || 0;
+        break;
+      case 'games':
+        currentValue = user?.gameStats?.totalGames || 0;
+        break;
+      case 'rank':
+        currentValue = user?.ranking?.bestRank || 0;
+        break;
+      default:
+        currentValue = 0;
+    }
+    
+    if (condition.type === 'rank') {
+      if (currentValue === 0) return { current: 0, required: condition.requirement, percentage: 0 };
+      return { 
+        current: currentValue, 
+        required: condition.requirement, 
+        percentage: currentValue <= condition.requirement ? 100 : 0 
+      };
+    } else {
+      const percentage = Math.min((currentValue / condition.requirement) * 100, 100);
+      return { current: currentValue, required: condition.requirement, percentage };
     }
   };
 
@@ -402,6 +538,65 @@ const Shop = ({ onBack }) => {
                     {banner.type === 'fire' && 'Flammes animées avec effet de feu'}
                     {banner.type === 'circuit' && 'Circuits électroniques avec pulsations'}
                   </p>
+
+                  {/* Unlock Conditions */}
+                  {!banner.isOwned && (() => {
+                    const condition = getBannerUnlockConditions(banner.id);
+                    const progress = getBannerProgress(banner.id);
+                    const canUnlock = canUnlockBanner(banner.id);
+                    
+                    return (
+                      <div className="mt-3 p-3 rounded-lg bg-black/30 border border-white/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`${condition.color}`}>
+                            {condition.icon}
+                          </span>
+                          <span className="text-sm font-semibold text-white">
+                            Condition de déblocage
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-gray-300">
+                            {condition.description}
+                          </span>
+                          <span className={`text-sm font-bold ${canUnlock ? 'text-green-400' : 'text-red-400'}`}>
+                            {canUnlock ? '✓ Débloquée' : '✗ Verrouillée'}
+                          </span>
+                        </div>
+
+                        {condition.type !== 'none' && (
+                          <>
+                            {/* Progress Bar */}
+                            <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all duration-300 ${
+                                  progress.percentage >= 100 ? 'bg-green-500' : 'bg-blue-500'
+                                }`}
+                                style={{ width: `${Math.min(progress.percentage, 100)}%` }}
+                              />
+                            </div>
+                            
+                            {/* Progress Text */}
+                            <div className="flex justify-between text-xs text-gray-400">
+                              <span>
+                                {condition.type === 'rank' 
+                                  ? `Rang actuel: ${progress.current || 'Non classé'}`
+                                  : `Actuel: ${progress.current.toLocaleString()}`
+                                }
+                              </span>
+                              <span>
+                                {condition.type === 'rank'
+                                  ? `Requis: ≤ ${progress.required}`
+                                  : `Requis: ${progress.required.toLocaleString()}`
+                                }
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Price / Status */}
@@ -411,31 +606,47 @@ const Shop = ({ onBack }) => {
                       <FaCheck />
                       <span className="font-semibold">Possédé</span>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <FaCoins className="text-yellow-400" />
-                        <span className="text-xl font-bold">{banner.price}</span>
-                      </div>
-                      <motion.button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePurchaseBannerWithFeedback(banner.id);
-                        }}
-                        disabled={credits < banner.price || bannersLoading}
-                        className={`
-                          px-4 py-2 rounded-lg font-semibold transition-all
-                          ${credits >= banner.price && !bannersLoading
-                            ? 'bg-gradient-to-r from-green-400 to-green-600 text-white hover:shadow-lg'
-                            : 'bg-gray-600 text-gray-400 cursor-not-allowed'}
-                        `}
-                        whileHover={credits >= banner.price && !bannersLoading ? { scale: 1.05 } : {}}
-                        whileTap={credits >= banner.price && !bannersLoading ? { scale: 0.95 } : {}}
-                      >
-                        {bannersLoading ? '...' : credits >= banner.price ? 'Acheter' : <FaLock />}
-                      </motion.button>
-                    </>
-                  )}
+                  ) : (() => {
+                    const canUnlock = canUnlockBanner(banner.id);
+                    const canAfford = credits >= banner.price;
+                    const canPurchase = canUnlock && canAfford && !bannersLoading;
+                    
+                    return (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <FaCoins className="text-yellow-400" />
+                          <span className="text-xl font-bold">{banner.price}</span>
+                        </div>
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canPurchase) {
+                              handlePurchaseBannerWithFeedback(banner.id);
+                            }
+                          }}
+                          disabled={!canPurchase}
+                          className={`
+                            px-4 py-2 rounded-lg font-semibold transition-all
+                            ${canPurchase
+                              ? 'bg-gradient-to-r from-green-400 to-green-600 text-white hover:shadow-lg'
+                              : 'bg-gray-600 text-gray-400 cursor-not-allowed'}
+                          `}
+                          whileHover={canPurchase ? { scale: 1.05 } : {}}
+                          whileTap={canPurchase ? { scale: 0.95 } : {}}
+                          title={
+                            !canUnlock ? 'Condition de déblocage non remplie' :
+                            !canAfford ? 'Crédits insuffisants' :
+                            bannersLoading ? 'Chargement...' : 'Acheter cette bannière'
+                          }
+                        >
+                          {bannersLoading ? '...' : 
+                           !canUnlock ? <FaLock /> :
+                           !canAfford ? <FaLock /> : 
+                           'Acheter'}
+                        </motion.button>
+                      </>
+                    );
+                  })()}
                 </div>
               </motion.div>
             ))}
