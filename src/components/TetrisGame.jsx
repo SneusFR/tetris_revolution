@@ -57,8 +57,10 @@ const TetrisGame = () => {
   const contactRef = useRef(false);
   const lockStartRef = useRef(0);
   const lockResetsRef = useRef(0);
+  const softContactRef = useRef(false);
 
   const LOCK_DELAY_MS = 500;      // 500ms lock delay
+  const SOFTDROP_LOCK_FACTOR = 0; // Lock instantané avec soft drop
   const MAX_LOCK_RESETS = 15;     // Maximum lock resets
 
   const {
@@ -276,6 +278,7 @@ const TetrisGame = () => {
             if (contactRef.current) {
               dlog('CONTACT/LOST  ');
               contactRef.current = false;
+              softContactRef.current = false;
             }
           } else {
             if (!contactRef.current) {
@@ -283,14 +286,17 @@ const TetrisGame = () => {
               lockStartRef.current = performance.now();
               lockResetsRef.current = 0;
               dlog('CONTACT/SET   ', { y: simPiece.y });
+              softContactRef.current = false; // contact venu de la gravité
             }
             const elapsed = performance.now() - lockStartRef.current;
-            dlog('LOCK/ELAPSED  ', { ms: Math.round(elapsed), resets: lockResetsRef.current });
+            const threshold = LOCK_DELAY_MS * (softContactRef.current ? SOFTDROP_LOCK_FACTOR : 1);
+            dlog('LOCK/ELAPSED  ', { ms: Math.round(elapsed), threshold, soft: softContactRef.current, resets: lockResetsRef.current });
 
-            if (elapsed >= LOCK_DELAY_MS) {
+            if (elapsed >= threshold) {
               dlog('LOCK/COMMIT   ', { piece: snapPiece(simPiece) });
               lockPieceRef.current();
               contactRef.current = false;
+              softContactRef.current = false;
             }
           }
 
@@ -341,6 +347,11 @@ const TetrisGame = () => {
     
     setHoldPiece(null);
     setCanHold(true);
+    
+    // Reset lock delay system
+    contactRef.current = false;
+    softContactRef.current = false;
+    lockResetsRef.current = 0;
     
     dlog('SPAWN/INIT    ', { current: initialBag[0]?.name, next: initialBag.slice(1,4).map(p=>p.name) });
     
@@ -394,6 +405,7 @@ const TetrisGame = () => {
         lockStartRef.current = performance.now();
         lockResetsRef.current = 0;
         dlog('CONTACT/SET   ', { y: piece.y, reason: 'softdrop' });
+        softContactRef.current = true;
       }
     }
   }, [isPaused, gameOver, isAnimatingLines]);
@@ -526,6 +538,9 @@ const TetrisGame = () => {
           
           setCurrentPiece(newPiece);
           setCanHold(true);
+          contactRef.current = false;
+          softContactRef.current = false;
+          lockResetsRef.current = 0;
           dend();
         }, 125); // Duration of disappear animation (2x faster)
       }, 75); // Duration of highlight animation (2x faster)
@@ -576,6 +591,7 @@ const TetrisGame = () => {
           lockResetsRef.current += 1;
         } else {
           contactRef.current = false;
+          softContactRef.current = false;
         }
       }
     }
