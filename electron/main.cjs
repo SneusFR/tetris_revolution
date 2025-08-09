@@ -67,9 +67,9 @@ function createWindow() {
     const client = new net.Socket();
     
     client.setTimeout(2000);
-    client.connect(5174, 'localhost', () => {
+    client.connect(5173, 'localhost', () => {
       // Serveur accessible, charger depuis localhost
-      mainWindow.loadURL('http://localhost:5174');
+      mainWindow.loadURL('http://localhost:5173');
       mainWindow.webContents.openDevTools();
       client.destroy();
     });
@@ -126,7 +126,7 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
     const parsedUrl = new URL(navigationUrl);
     
-    if (parsedUrl.origin !== 'http://localhost:5174' && parsedUrl.origin !== 'file://') {
+    if (parsedUrl.origin !== 'http://localhost:5173' && parsedUrl.origin !== 'file://') {
       event.preventDefault();
     }
   });

@@ -1,31 +1,24 @@
 {
   "appId": "com.tetris.revolution",
   "productName": "Tetris Revolution",
-  "directories": {
-    "output": "dist-electron"
-  },
+  "directories": { "output": "dist-electron" },
   "files": [
-    "dist/**/*",
-    "electron/**/*",
-    "node_modules/**/*",
+    "dist/**",
+    "electron/**",
     "package.json"
   ],
+  "asar": true,
+  "npmRebuild": false,
+  "buildDependenciesFromSource": false,
   "extraMetadata": {
     "main": "electron/main.cjs"
   },
   "win": {
     "target": [
-      {
-        "target": "nsis",
-        "arch": ["x64"]
-      },
-      {
-        "target": "portable",
-        "arch": ["x64"]
-      }
+      { "target": "nsis", "arch": ["x64"] },
+      { "target": "portable", "arch": ["x64"] }
     ],
     "icon": "electron/icons/icon.png",
-    "publisherName": "Tetris Revolution",
     "verifyUpdateCodeSignature": false
   },
   "nsis": {
@@ -36,32 +29,17 @@
     "shortcutName": "Tetris Revolution"
   },
   "mac": {
-    "target": [
-      {
-        "target": "dmg",
-        "arch": ["x64", "arm64"]
-      }
-    ],
+    "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
     "icon": "electron/icons/icon.png",
     "category": "public.app-category.games"
   },
   "linux": {
     "target": [
-      {
-        "target": "AppImage",
-        "arch": ["x64"]
-      },
-      {
-        "target": "deb",
-        "arch": ["x64"]
-      }
+      { "target": "AppImage", "arch": ["x64"] },
+      { "target": "deb", "arch": ["x64"] }
     ],
     "icon": "electron/icons/icon.png",
     "category": "Game"
   },
-  "publish": {
-    "provider": "github",
-    "owner": "SneusFR",
-    "repo": "tetris_revolution"
-  }
+  "publish": { "provider": "github", "owner": "SneusFR", "repo": "tetris_revolution" }
 }
