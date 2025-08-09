@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignInAlt, FaSignOutAlt, FaMedal } from 'react-icons/fa';
+import { FaPlay, FaCog, FaShoppingCart, FaTrophy, FaInfoCircle, FaUser, FaSignInAlt, FaSignOutAlt, FaMedal, FaDesktop } from 'react-icons/fa';
 import useGameStore from '../store/gameStore';
 import useAuthStore from '../store/authStore';
 import useEffectStore from '../store/effectStore';
 import { assetUrl } from '../api/utils';
+import { isElectron } from '../utils/electronUtils';
+import DownloadClient from './DownloadClient';
 
 const MainMenu = ({ onNavigate }) => {
   const { highScore, credits, statistics } = useGameStore();
@@ -131,7 +133,7 @@ const MainMenu = ({ onNavigate }) => {
         className="text-center -mt-30"
       >
         <img 
-          src="/logo.png" 
+          src="./logo.png"
           alt="Logo" 
           className="mx-auto h-80 w-auto object-contain drop-shadow-2xl"
         />
@@ -225,11 +227,22 @@ const MainMenu = ({ onNavigate }) => {
         transition={{ delay: 0.8 }}
         className="mt-12 text-center text-gray-500"
       >
-        <p className="flex items-center gap-2">
-          <FaInfoCircle />
-          <span>Utilisez les flèches pour naviguer • ENTER pour sélectionner</span>
-        </p>
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <p className="flex items-center gap-2">
+            <FaInfoCircle />
+            <span>Utilisez les flèches pour naviguer • ENTER pour sélectionner</span>
+          </p>
+          {isElectron() && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30">
+              <FaDesktop className="text-blue-400" />
+              <span className="text-blue-300 text-sm font-medium">Version Desktop</span>
+            </div>
+          )}
+        </div>
       </motion.div>
+
+      {/* Bouton Download Client (seulement sur web) */}
+      <DownloadClient />
 
       {/* Animated Background Elements */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
