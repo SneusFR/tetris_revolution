@@ -3,6 +3,7 @@ import { dlog, warn } from '../utils/debug';
 
 export const BOARD_WIDTH = 10;
 export const BOARD_HEIGHT = 20;
+export const HIDDEN_ROWS = 2;              // NEW: rangées "invisibles"
 export const PREVIEW_SIZE = 4;
 
 // Tetromino shapes
@@ -79,20 +80,11 @@ export const getRandomTetromino = () => {
   const name = TETROMINO_NAMES[Math.floor(Math.random() * TETROMINO_NAMES.length)];
   const tetromino = TETROMINOES[name];
   
-  // Find the first row that contains blocks to determine proper spawn position
-  let firstBlockRow = 0;
-  for (let row = 0; row < tetromino.shape.length; row++) {
-    if (tetromino.shape[row].some(cell => cell !== 0)) {
-      firstBlockRow = row;
-      break;
-    }
-  }
-  
   return {
     name,
     ...tetromino,
     x: Math.floor(BOARD_WIDTH / 2) - Math.floor(tetromino.shape[0].length / 2),
-    y: -firstBlockRow, // Start above the board to account for empty rows in piece matrix
+    y: -HIDDEN_ROWS,         // NEW: toutes les pièces spawnent au-dessus du board
     rotation: 0 // NEW: Add rotation state
   };
 };
@@ -402,20 +394,11 @@ export const generateBag = () => {
   return bag.map(name => {
     const tetromino = TETROMINOES[name];
     
-    // Find the first row that contains blocks to determine proper spawn position
-    let firstBlockRow = 0;
-    for (let row = 0; row < tetromino.shape.length; row++) {
-      if (tetromino.shape[row].some(cell => cell !== 0)) {
-        firstBlockRow = row;
-        break;
-      }
-    }
-    
     return {
       name,
       ...tetromino,
       x: Math.floor(BOARD_WIDTH / 2) - Math.floor(tetromino.shape[0].length / 2),
-      y: -firstBlockRow, // Start above the board to account for empty rows in piece matrix
+      y: -HIDDEN_ROWS,         // NEW: toutes les pièces spawnent au-dessus du board
       rotation: 0 // NEW: Add rotation state
     };
   });

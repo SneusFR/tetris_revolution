@@ -28,7 +28,8 @@ import {
   applyMove,
   validatePiecePosition,
   BOARD_WIDTH,
-  BOARD_HEIGHT
+  BOARD_HEIGHT,
+  HIDDEN_ROWS
 } from '../utils/tetrisLogic';
 
 const TetrisGame = () => {
@@ -434,6 +435,7 @@ const TetrisGame = () => {
       dlog('LOCK/FIXED    ', { from: snapPiece(currentPieceRef.current), to: snapPiece(piece) });
     }
 
+    // TOP-OUT: si une case de la pièce est au-dessus de la ligne 0 -> game over
     if (wouldLockAboveTop(piece)) {
       dlog('LOCK/ABOVETOP ');
       setGameOver(true);
@@ -675,15 +677,16 @@ const TetrisGame = () => {
       y: gy
     };
     
-    // Sécurité: vérifier si la pièce se verrouille au-dessus du board
+    // TOP-OUT: si la position finale est au-dessus du board -> game over
     if (wouldLockAboveTop(droppedPiece)) {
+      dlog('LOCK/ABOVETOP (hardDrop)');
       setGameOver(true);
       soundManager.stopMusic();
       soundManager.playSound('gameOver', settings);
       setIsHardDropping(false);
       return;
     }
-    
+
     // Update score for the drop distance
     updateScore(dropDistance * 2);
     soundManager.playSound('drop', settings);
@@ -804,7 +807,7 @@ const TetrisGame = () => {
     setHoldPiece({
       ...currentPiece,
       x: Math.floor(BOARD_WIDTH / 2) - Math.floor(currentPiece.shape[0].length / 2),
-      y: 0,
+      y: -HIDDEN_ROWS,
       rotation: 0
     });
     
@@ -813,7 +816,7 @@ const TetrisGame = () => {
       setCurrentPiece({
         ...temp,
         x: Math.floor(BOARD_WIDTH / 2) - Math.floor(temp.shape[0].length / 2),
-        y: 0,
+        y: -HIDDEN_ROWS,
         rotation: 0
       });
     } else {
@@ -1328,8 +1331,8 @@ const TetrisGame = () => {
             comboBonus={scoreImpactData.comboBonus}
             effect={activeEffect}
             position={{ 
-              x: (BOARD_WIDTH * 30) / 2, 
-              y: (BOARD_HEIGHT * 30) / 2 
+              x: (BOARD_WIDTH * 30) / 20, 
+              y: (BOARD_HEIGHT * 30) / 2.5 
             }}
             onAnimationComplete={() => setScoreImpactData(null)}
           />

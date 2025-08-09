@@ -54,6 +54,7 @@ const ScreenShake = ({ intensity = 0, duration = 500, children, className = "" }
       variants={getShakeVariants()}
       initial="initial"
       animate={intensity > 0 ? "shake" : "initial"}
+      style={{ willChange: 'transform' }}
     >
       {children}
     </motion.div>

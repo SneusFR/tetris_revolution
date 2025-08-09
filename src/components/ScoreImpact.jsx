@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LazyMotion, domAnimation, useReducedMotion, MotionConfig } from 'framer-motion';
 
 const ScoreImpact = ({ 
   score, 
@@ -13,11 +13,17 @@ const ScoreImpact = ({
 }) => {
   const [showImpact, setShowImpact] = useState(false);
   const [impactParticles, setImpactParticles] = useState([]);
+  const prefersReducedMotion = useReducedMotion();
+
+  // Perf mode: kick in for Tetris (4 lines) or if the OS prefers reduced motion
+  const perfMode = linesCleared === 4 || prefersReducedMotion;
 
   // Optimize particle generation with useCallback
   const generateImpactParticles = useCallback(() => {
     const particles = [];
-    const particleCount = Math.min(linesCleared * 12, 40); // Reduced from 15*60 to 12*40 for better performance
+    const particleCount = perfMode
+      ? Math.min(linesCleared * 6, 18)     // trimmed on heavy events
+      : Math.min(linesCleared * 12, 40);
     const intensity = Math.min(linesCleared, 4); // Max intensity for Tetris
 
     for (let i = 0; i < particleCount; i++) {
@@ -35,7 +41,7 @@ const ScoreImpact = ({
       });
     }
     setImpactParticles(particles);
-  }, [linesCleared, effect, position.x, position.y]);
+  }, [linesCleared, effect, position.x, position.y, perfMode]);
 
   useEffect(() => {
     if (linesCleared > 0) {
@@ -48,11 +54,11 @@ const ScoreImpact = ({
         if (onAnimationComplete) {
           onAnimationComplete();
         }
-      }, 2000);
+      }, perfMode ? 1100 : 2000);
 
       return () => clearTimeout(timer);
     }
-  }, [linesCleared, onAnimationComplete, generateImpactParticles]);
+  }, [linesCleared, onAnimationComplete, generateImpactParticles, perfMode]);
 
   const getParticleColor = (effect, index, intensity) => {
     const alpha = 0.8 + (intensity * 0.2);
@@ -105,9 +111,17 @@ const ScoreImpact = ({
 
   const renderScoreImpact = () => {
     const intensity = getImpactIntensity();
-    
+    const DUR = perfMode ? 1.0 : 1.8;
+
     return (
-      <div className="absolute inset-0 pointer-events-none z-30">
+      <div
+        className="absolute inset-0 pointer-events-none z-30"
+        style={{
+          contain: 'paint',
+          willChange: 'transform, opacity',
+          transform: 'translate3d(0,0,0)'
+        }}
+      >
         {/* Score explosion effect */}
         <motion.div
           className="absolute"
@@ -117,12 +131,12 @@ const ScoreImpact = ({
             transform: 'translate(-50%, -50%)'
           }}
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: [0, intensity * 1.5, intensity], opacity: [0, 1, 0.8, 0.6] }}
-          exit={{ scale: 0.5, opacity: 0, y: -50 }}
+          animate={{ scale: [0, intensity * 1.5, intensity], opacity: [0, 1, 0.85, 0.6] }}
+          exit={{ scale: 0.5, opacity: 0, y: -40 }}
           transition={{ 
-            duration: 1.8, 
+            duration: DUR, 
             ease: "easeOut",
-            opacity: { duration: 2.0 }
+            opacity: { duration: DUR + 0.2 }
           }}
         >
           {/* Main impact circle */}
@@ -143,7 +157,7 @@ const ScoreImpact = ({
                 ? 'conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #0000ff, #8800ff, #ff0000)'
                 : 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
               transform: 'translate(-50%, -50%)',
-              filter: `blur(${intensity}px)`
+              willChange: 'transform, opacity'
             }}
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ 
@@ -151,7 +165,7 @@ const ScoreImpact = ({
               scale: [0.5, 1.2, 1.5, 1.8, 2]
             }}
             transition={{ 
-              duration: 2.0,
+              duration: DUR + 0.2,
               times: [0, 0.2, 0.5, 0.8, 1],
               ease: "easeOut"
             }}
@@ -162,30 +176,32 @@ const ScoreImpact = ({
             className="absolute text-center font-bold"
             style={{
               transform: 'translate(-50%, -50%)',
-              fontSize: `${intensity * 16 + 16}px`,
+              fontSize: `${intensity * 10 + 2}px`,
               color: getScoreColor(),
-              textShadow: `0 0 ${intensity * 10}px ${getScoreColor()}, 0 0 ${intensity * 20}px ${getScoreColor()}`,
-              fontFamily: 'Orbitron, monospace'
+              // lighter glow: cheaper than huge textShadow stacks
+              textShadow: perfMode ? 'none' : `0 0 ${Math.max(6, intensity * 8)}px ${getScoreColor()}`,
+              fontFamily: 'Orbitron, monospace',
+              willChange: 'transform, opacity'
             }}
-            initial={{ scale: 0, y: 0, opacity: 0 }}
+            initial={{ scale: 0, y: 20, opacity: 0 }}
             animate={{ 
               scale: [0, 1.3, 1.1, 1], 
-              y: [0, -25, -15, -10],
-              opacity: [0, 1, 1, 0.8, 0],
+              y: [20, -40, -30, -25],
+              opacity: [0, 1, 1, 0.85, 0],
               rotate: [0, intensity * 8, -intensity * 3, 0]
             }}
             exit={{ 
               scale: 0.3, 
-              y: -80, 
+              y: -60, 
               opacity: 0,
               rotate: intensity * 10
             }}
             transition={{ 
-              duration: 2.0, 
+              duration: DUR, 
               ease: "easeOut",
               opacity: { 
                 times: [0, 0.1, 0.7, 0.9, 1],
-                duration: 2.0
+                duration: DUR
               }
             }}
           >
@@ -261,7 +277,8 @@ const ScoreImpact = ({
               height: particle.size,
               backgroundColor: particle.color,
               borderRadius: effect === 'matrix' ? '0%' : '50%',
-              boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`
+              // drop per-particle shadow – big win for paint cost
+              willChange: 'transform, opacity'
             }}
             initial={{
               x: particle.x,
@@ -278,7 +295,7 @@ const ScoreImpact = ({
               rotate: particle.rotation + particle.rotationSpeed * 30
             }}
             transition={{ 
-              duration: 1.5 + Math.random() * 0.5, 
+              duration: perfMode ? 0.9 + Math.random() * 0.3 : 1.5 + Math.random() * 0.5, 
               ease: "easeOut" 
             }}
           >
@@ -294,15 +311,17 @@ const ScoreImpact = ({
         {linesCleared === 4 && (
           <>
             {/* Lightning bolts for electric effect */}
-            {effect === 'electric' && Array.from({ length: 12 }, (_, i) => (
+            {effect === 'electric' && Array.from({ length: perfMode ? 6 : 12 }, (_, i) => (
               <motion.div
                 key={`bolt-${i}`}
-                className="absolute bg-cyan-400"
+                className="absolute"
                 style={{
                   left: position.x,
                   top: position.y,
                   width: '3px',
-                  transformOrigin: 'top center'
+                  transformOrigin: 'top center',
+                  background: 'linear-gradient(to bottom, rgba(0,255,255,1), rgba(0,255,255,0))',
+                  willChange: 'transform, opacity'
                 }}
                 initial={{
                   height: 0,
@@ -314,7 +333,7 @@ const ScoreImpact = ({
                   opacity: 0,
                 }}
                 transition={{ 
-                  duration: 0.4, 
+                  duration: perfMode ? 0.3 : 0.4, 
                   delay: i * 0.05,
                   ease: "easeOut"
                 }}
@@ -328,19 +347,19 @@ const ScoreImpact = ({
                 style={{
                   left: position.x,
                   top: position.y,
-                  transform: 'translate(-50%, -50%)'
+                  transform: 'translate(-50%, -50%)',
+                  willChange: 'transform, opacity'
                 }}
                 initial={{ scale: 0, opacity: 1 }}
-                animate={{ scale: 4, opacity: 0 }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
+                animate={{ scale: perfMode ? 3.2 : 4, opacity: 0 }}
+                transition={{ duration: perfMode ? 0.8 : 1.2, ease: "easeOut" }}
               >
                 <div
                   style={{
                     width: '200px',
                     height: '200px',
                     background: 'radial-gradient(circle, rgba(255,200,0,0.9) 0%, rgba(255,100,0,0.6) 30%, rgba(255,0,0,0.3) 60%, transparent 100%)',
-                    borderRadius: '50%',
-                    filter: 'blur(2px)'
+                    borderRadius: '50%'
                   }}
                 />
               </motion.div>
@@ -354,9 +373,13 @@ const ScoreImpact = ({
   if (!showImpact || linesCleared === 0) return null;
 
   return (
-    <AnimatePresence>
-      {renderScoreImpact()}
-    </AnimatePresence>
+    <LazyMotion features={domAnimation}>
+      <MotionConfig reducedMotion={prefersReducedMotion ? "always" : "never"}>
+        <AnimatePresence>
+          {renderScoreImpact()}
+        </AnimatePresence>
+      </MotionConfig>
+    </LazyMotion>
   );
 };
 
