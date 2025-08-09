@@ -18,7 +18,7 @@
     "electron:dist": "npm run build && electron-builder",
     "dist": "npm run build && electron-builder --publish=never",
     "build:desktop": "node scripts/build-desktop.js",
-    "publish:release": "node scripts/publish-release.js",
+    "publish:release": "node scripts/publish-release.cjs",
     "release": "npm run electron:dist && npm run publish:release"
   },
   "dependencies": {

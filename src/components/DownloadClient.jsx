@@ -12,26 +12,19 @@ const DownloadClient = () => {
   }
 
   const downloadLinks = {
-    windows: {
+    windowsSetup: {
       icon: <FaWindows className="text-2xl" />,
-      name: 'Windows',
-      file: 'Tetris-Revolution-Setup-1.0.0.exe',
-      size: '~150 MB',
-      description: 'Compatible Windows 10/11 (64-bit)'
+      name: 'Windows (Installateur)',
+      file: 'Tetris.Revolution.Setup.1.0.0.exe',
+      size: '131 MB',
+      description: 'Installateur Windows 10/11 (64-bit)'
     },
-    mac: {
-      icon: <FaApple className="text-2xl" />,
-      name: 'macOS',
-      file: 'Tetris-Revolution-1.0.0.dmg',
-      size: '~160 MB',
-      description: 'Compatible macOS 10.15+ (Intel & Apple Silicon)'
-    },
-    linux: {
-      icon: <FaLinux className="text-2xl" />,
-      name: 'Linux',
-      file: 'Tetris-Revolution-1.0.0.AppImage',
-      size: '~140 MB',
-      description: 'Compatible Ubuntu 18.04+ et distributions équivalentes'
+    windowsPortable: {
+      icon: <FaWindows className="text-2xl" />,
+      name: 'Windows (Portable)',
+      file: 'Tetris.Revolution.1.0.0.exe',
+      size: '130 MB',
+      description: 'Version portable Windows 10/11 (64-bit)'
     }
   };
 

@@ -53,7 +53,8 @@ try {
   `.trim();
 
   // Créer la release avec gh CLI
-  execSync(`gh release create ${VERSION} --title "Tetris Revolution ${VERSION}" --notes "${releaseNotes}"`, { 
+  const ghPath = '"C:\\Program Files\\GitHub CLI\\gh.exe"';
+  execSync(`${ghPath} release create ${VERSION} --title "Tetris Revolution ${VERSION}" --notes "${releaseNotes}"`, { 
     stdio: 'inherit',
     cwd: process.cwd()
   });
@@ -72,7 +73,7 @@ try {
   for (const file of files) {
     const filePath = path.join(DIST_DIR, file);
     console.log(`  📎 Upload de ${file}...`);
-    execSync(`gh release upload ${VERSION} "${filePath}"`, { stdio: 'inherit' });
+    execSync(`${ghPath} release upload ${VERSION} "${filePath}"`, { stdio: 'inherit' });
   }
 
   console.log(`✅ Release ${VERSION} publiée avec succès !`);
