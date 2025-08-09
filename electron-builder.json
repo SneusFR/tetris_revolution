@@ -41,5 +41,10 @@
     "icon": "electron/icons/icon.png",
     "category": "Game"
   },
-  "publish": { "provider": "github", "owner": "SneusFR", "repo": "tetris_revolution" }
+  "publish": {
+    "provider": "github",
+    "owner": "SneusFR",
+    "repo": "tetris_revolution",
+    "releaseType": "release"
+  }
 }
