@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Revolution - Chargement</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        /* Animated background */
+        .bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 255, 0, 0.1) 0%, transparent 50%);
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Floating particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ffff;
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .particle:nth-child(2) { background: #ff00ff; animation-delay: -1s; }
+        .particle:nth-child(3) { background: #ffff00; animation-delay: -2s; }
+        .particle:nth-child(4) { background: #00ff00; animation-delay: -3s; }
+        .particle:nth-child(5) { background: #ff8800; animation-delay: -4s; }
+        
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) translateX(0px) scale(1);
+                opacity: 0.7;
+            }
+            25% { 
+                transform: translateY(-20px) translateX(10px) scale(1.2);
+                opacity: 1;
+            }
+            50% { 
+                transform: translateY(-40px) translateX(-10px) scale(0.8);
+                opacity: 0.5;
+            }
+            75% { 
+                transform: translateY(-20px) translateX(15px) scale(1.1);
+                opacity: 0.9;
+            }
+        }
+        
+        /* Main content */
+        .splash-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Logo */
+        .logo {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 30px;
+            background: linear-gradient(135deg, #00d4ff, #b347d9, #ff006e);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            font-weight: 900;
+            animation: pulse 2s ease-in-out infinite;
+            box-shadow: 
+                0 0 50px rgba(0, 212, 255, 0.5),
+                0 0 100px rgba(179, 71, 217, 0.3),
+                inset 0 0 50px rgba(255, 255, 255, 0.1);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 
+                    0 0 50px rgba(0, 212, 255, 0.5),
+                    0 0 100px rgba(179, 71, 217, 0.3);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 
+                    0 0 70px rgba(0, 212, 255, 0.8),
+                    0 0 140px rgba(179, 71, 217, 0.5);
+            }
+        }
+        
+        /* Title */
+        .title {
+            font-size: 3.5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00d4ff, #b347d9, #ff006e, #00ff88);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease-in-out infinite;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        /* Subtitle */
+        .subtitle {
+            font-size: 1.2rem;
+            color: #b347d9;
+            margin-bottom: 40px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 10px rgba(179, 71, 217, 0.5); }
+            to { text-shadow: 0 0 20px rgba(179, 71, 217, 0.8), 0 0 30px rgba(179, 71, 217, 0.4); }
+        }
+        
+        /* Loading bar */
+        .loading-container {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #b347d9, #ff006e, #00ff88);
+            background-size: 200% 100%;
+            border-radius: 3px;
+            animation: loading 2s ease-in-out infinite, gradientMove 1.5s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+        }
+        
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        
+        /* Loading text */
+        .loading-text {
+            font-size: 1rem;
+            color: #00d4ff;
+            animation: fadeInOut 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* Credits */
+        .credits {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-align: center;
+            animation: slideUp 1.5s ease-out 0.5s both;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .credits .highlight {
+            background: linear-gradient(45deg, #00d4ff, #b347d9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+        }
+        
+        /* Electron logo */
+        .electron-logo {
+            display: inline-block;
+            margin-left: 10px;
+            animation: spin 4s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <!-- Floating particles -->
+    <div class="particle" style="top: 20%; left: 10%;"></div>
+    <div class="particle" style="top: 60%; left: 80%;"></div>
+    <div class="particle" style="top: 30%; left: 70%;"></div>
+    <div class="particle" style="top: 80%; left: 20%;"></div>
+    <div class="particle" style="top: 50%; left: 50%;"></div>
+    
+    <div class="splash-content">
+        <div class="logo">T</div>
+        <h1 class="title">TETRIS REVOLUTION</h1>
+        <p class="subtitle">Chargement de l'expérience ultime...</p>
+        
+        <div class="loading-container">
+            <div class="loading-bar"></div>
+        </div>
+        
+        <p class="loading-text">Initialisation en cours...</p>
+    </div>
+    
+    <div class="credits">
+        BY <span class="highlight">SNEUS STUDIO</span> WITH 
+        <span class="highlight">ELECTRON</span>
+        <span class="electron-logo">⚡</span>
+    </div>
+
+    <script>
+        // Simuler le chargement et fermer le splash screen
+        setTimeout(() => {
+            if (window.electronAPI) {
+                window.electronAPI.closeSplash();
+            }
+        }, 3000); // 3 secondes de splash screen
+        
+        // Animation des particules
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 6000);
+        }
+        
+        // Créer des particules périodiquement
+        setInterval(createParticle, 800);
+    </script>
+</body>
+</html>
